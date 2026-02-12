@@ -6,11 +6,11 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-public interface AccountRepository extends JpaRepository<Account, Long> {
+public interface AccountRepository extends JpaRepository<Account, Long>{
 
     Account findTopByOrderByIdDesc();
 
     Optional<Account> findByUsername(String username);
 
-    Optional<Account> findByAccountId(Integer accountId);
+    Optional<Account> findByAccountId(String accountId);
 }
