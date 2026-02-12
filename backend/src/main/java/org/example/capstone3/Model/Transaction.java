@@ -19,10 +19,17 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Integer transfer_amount;
-    private String source_account;
-    private String destination_account;
+    private Double transfer_amount;
+
+    @ManyToOne
+    @JoinColumn(name = "source_account_id")
+    private Account sourceAccount;
+
+    @ManyToOne
+    @JoinColumn(name = "destination_account_id")
+    private Account destinationAccount;
+
+
     private LocalDate date;
 
 

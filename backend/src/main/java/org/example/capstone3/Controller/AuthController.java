@@ -15,6 +15,11 @@ public class AuthController {
 
     private final AccountService accountService;
 
+    @GetMapping("/")
+    public String rootPage(){
+        return "redirect:/login.html";
+    }
+
     // ================= LOGIN =================
     @GetMapping("/login")
     public String loginPage() {
