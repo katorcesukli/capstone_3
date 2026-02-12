@@ -17,7 +17,7 @@ public class Account {
     private Long id;
 
     @Column(name = "account_id")
-    private Integer accountId;
+    private String accountId;
 
     @Column(nullable = false )
     private String username;

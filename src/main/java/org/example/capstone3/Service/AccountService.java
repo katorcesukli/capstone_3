@@ -13,11 +13,21 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AccountService {
 
-    @Autowired
+
     private final AccountRepository accountRepository;
 
     // CREATE
     public Account createAccount(Account account) {
+
+        Account lastAccount = accountRepository.findTopByOrderByIdDesc();
+
+        // next number (1 if DB empty)
+        long nextId = (lastAccount != null) ? lastAccount.getId() + 1 : 1;
+
+        //create and format employeeId as 4 digits
+        account.setAccountId(String.format("%04d", nextId));
+
+        // save to DB
         return accountRepository.save(account);
     }
 
