@@ -1,63 +1,59 @@
 package org.example.capstone3.Service;
 
+import jakarta.transaction.Transactional;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.example.capstone3.Model.Account;
 import org.example.capstone3.Model.Transaction;
+import org.example.capstone3.Repository.AccountRepository;
 import org.example.capstone3.Repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Data
 @RequiredArgsConstructor
 public class TransactionService {
 
-    @Autowired
     private final TransactionRepository transactionRepository;
-    @Autowired
-    private final AccountService accountService;
+    private final AccountRepository accountRepository;
 
-    // CREATE TRANSACTION (with balance update)
+    @Transactional
     public Transaction createTransaction(Transaction transaction) {
 
-        var sourceAccount = accountService
-                .getAllAccounts()
-                .stream()
-                .filter(acc -> acc.getUsername().equals(transaction.getSource_account()))
-                .findFirst()
+        // Validate accounts
+        if (transaction.getSourceAccount() == null || transaction.getDestinationAccount() == null) {
+            throw new IllegalArgumentException("Source and destination accounts are required");
+        }
+
+        Account sourceAccount = accountRepository.findById(transaction.getSourceAccount().getId())
                 .orElseThrow(() -> new RuntimeException("Source account not found"));
 
-        var destinationAccount = accountService
-                .getAllAccounts()
-                .stream()
-                .filter(acc -> acc.getUsername().equals(transaction.getDestination_account()))
-                .findFirst()
+        Account destinationAccount = accountRepository.findById(transaction.getDestinationAccount().getId())
                 .orElseThrow(() -> new RuntimeException("Destination account not found"));
 
         if (sourceAccount.getBalance() < transaction.getTransfer_amount()) {
             throw new RuntimeException("Insufficient balance");
         }
 
-        // Deduct
-        sourceAccount.setBalance(
-                sourceAccount.getBalance() - transaction.getTransfer_amount()
-        );
+        // Update balances
+        sourceAccount.setBalance(sourceAccount.getBalance() - transaction.getTransfer_amount());
+        destinationAccount.setBalance(destinationAccount.getBalance() + transaction.getTransfer_amount());
 
-        // Add
-        destinationAccount.setBalance(
-                destinationAccount.getBalance() + transaction.getTransfer_amount()
-        );
+        // Save accounts
+        accountRepository.save(sourceAccount);
+        accountRepository.save(destinationAccount);
 
-        accountService.createAccount(sourceAccount);
-        accountService.createAccount(destinationAccount);
-
+        // Set transaction date
         transaction.setDate(LocalDate.now());
 
         return transactionRepository.save(transaction);
     }
 
-    // GET ALL
     public List<Transaction> getAllTransactions() {
         return transactionRepository.findAll();
     }
