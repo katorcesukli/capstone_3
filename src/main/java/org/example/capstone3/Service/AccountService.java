@@ -33,7 +33,7 @@ public class AccountService {
     }
 
     // GET ALL
-    public List<Account> getAllAccounts() {
+    public List<Account> getAllAccounts()    {
         return accountRepository.findAll();
     }
 

@@ -63,7 +63,7 @@ async function transferMoney() {
 
     const sourceId = document.getElementById("sourceAccount").value;
     const destinationId = document.getElementById("destinationAccount").value;
-    const amount = parseInt(document.getElementById("amount").value);
+    const amount = parseFloat(document.getElementById("amount").value);
 
     if (sourceId === destinationId) {
         alert("Cannot transfer to same account!");
@@ -72,8 +72,8 @@ async function transferMoney() {
 
     const transaction = {
         transferAmount: amount,
-        sourceAccount: { id: sourceId },
-        destinationAccount: { id: destinationId }
+        sourceAccount: { id: parseInt(sourceId) },
+        destinationAccount: { id: parseInt(destinationId) }
     };
 
     const response = await fetch(`${BASE_URL}/transactions`, {
@@ -83,7 +83,8 @@ async function transferMoney() {
     });
 
     if (!response.ok) {
-        alert("Transfer failed!");
+        const error = await response.text();
+        alert("Transfer failed: " + error);
         return;
     }
 

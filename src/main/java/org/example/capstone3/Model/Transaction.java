@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
@@ -20,9 +19,16 @@ public class Transaction {
     private Long id;
 
     @Column(nullable = false)
-    private Integer transfer_amount;
-    private String source_account;
-    private String destination_account;
+    private Double transferAmount;
+
+    @ManyToOne
+    @JoinColumn(name = "source_account", nullable = false)
+    private Account sourceAccount;
+
+    @ManyToOne
+    @JoinColumn(name = "destination_account", nullable = false)
+    private Account destinationAccount;
+
     private LocalDate date;
 
 

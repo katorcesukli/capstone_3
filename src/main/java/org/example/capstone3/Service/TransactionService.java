@@ -3,7 +3,7 @@ package org.example.capstone3.Service;
 import lombok.RequiredArgsConstructor;
 import org.example.capstone3.Model.Transaction;
 import org.example.capstone3.Repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.capstone3.Service.AccountService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -13,46 +13,39 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TransactionService {
 
-    @Autowired
     private final TransactionRepository transactionRepository;
-    @Autowired
     private final AccountService accountService;
 
     // CREATE TRANSACTION (with balance update)
     public Transaction createTransaction(Transaction transaction) {
 
-        var sourceAccount = accountService
-                .getAllAccounts()
-                .stream()
-                .filter(acc -> acc.getUsername().equals(transaction.getSource_account()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Source account not found"));
+        var sourceAccount = transaction.getSourceAccount();
+        var destinationAccount = transaction.getDestinationAccount();
 
-        var destinationAccount = accountService
-                .getAllAccounts()
-                .stream()
-                .filter(acc -> acc.getUsername().equals(transaction.getDestination_account()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Destination account not found"));
+        // Load full account details
+        sourceAccount = accountService.getAccountById(sourceAccount.getId());
+        destinationAccount = accountService.getAccountById(destinationAccount.getId());
 
-        if (sourceAccount.getBalance() < transaction.getTransfer_amount()) {
+        if (sourceAccount.getBalance() < transaction.getTransferAmount()) {
             throw new RuntimeException("Insufficient balance");
         }
 
         // Deduct
         sourceAccount.setBalance(
-                sourceAccount.getBalance() - transaction.getTransfer_amount()
+                sourceAccount.getBalance() - transaction.getTransferAmount()
         );
 
         // Add
         destinationAccount.setBalance(
-                destinationAccount.getBalance() + transaction.getTransfer_amount()
+                destinationAccount.getBalance() + transaction.getTransferAmount()
         );
 
-        accountService.createAccount(sourceAccount);
-        accountService.createAccount(destinationAccount);
+        accountService.updateAccount(sourceAccount.getId(), sourceAccount);
+        accountService.updateAccount(destinationAccount.getId(), destinationAccount);
 
         transaction.setDate(LocalDate.now());
+        transaction.setSourceAccount(sourceAccount);
+        transaction.setDestinationAccount(destinationAccount);
 
         return transactionRepository.save(transaction);
     }
