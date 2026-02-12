@@ -1,5 +1,6 @@
 const form = document.getElementById('registerForm');
 const message = document.getElementById('message');
+const BASE_URL = "http://localhost:8080/api";
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -23,7 +24,7 @@ form.addEventListener('submit', async (e) => {
     }
 
     try {
-        const response = await fetch('/api/accounts/register', {
+        const response = await fetch(`${BASE_URL}/accounts/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }) // role is defaulted in backend

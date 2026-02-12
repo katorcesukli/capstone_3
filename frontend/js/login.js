@@ -1,5 +1,6 @@
 const form = document.getElementById('loginForm');
 const message = document.getElementById('message');
+const BASE_URL = "http://localhost:8080/api";
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -13,7 +14,7 @@ form.addEventListener('submit', async (e) => {
     }
 
     try {
-        const response = await fetch('/api/accounts/login', {
+        const response = await fetch(`${BASE_URL}/accounts/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
