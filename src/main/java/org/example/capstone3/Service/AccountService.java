@@ -8,12 +8,13 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AccountService {
 
-
+    @Autowired //changed to autowired for automatic bean creation #rian
     private final AccountRepository accountRepository;
 
     // CREATE
@@ -57,5 +58,38 @@ public class AccountService {
     // DELETE
     public void deleteAccount(Long id) {
         accountRepository.deleteById(id);
+    }
+
+
+//Register and login.html methods
+public Account register(Account account) {
+
+    // Check if username already exists
+    if (accountRepository.findByUsername(account.getUsername()).isPresent()) {
+        throw new RuntimeException("Username already exists");
+    }
+
+    // Default role
+    account.setRole("customer");
+
+    // Generate accountId
+    account.setAccountId(UUID.randomUUID().toString());
+
+    // Default balance
+    account.setBalance(0.0);
+
+    return accountRepository.save(account);
+}
+
+    public Account login(String username, String password) {
+
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!account.getPassword().equals(password)) {
+            throw new RuntimeException("Invalid password");
+        }
+
+        return account;
     }
 }
