@@ -29,17 +29,6 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
     $scope.editingAcc = {};
     $scope.modalData = {};
 
-    /**
-     * Helper function to extract error messages from backend responses
-     * Prevents [object Object] alerts by checking data structure
-     */
-    const getErrorMessage = function(err) {
-        if (!err.data) return "Server connection failed";
-        if (typeof err.data === 'string') return err.data;
-        if (err.data.message) return err.data.message;
-        return JSON.stringify(err.data);
-    };
-
     // Watcher: Reset account page to 0 whenever search query changes
     $scope.$watch('searchUser', function(newVal, oldVal) {
         if (newVal !== oldVal) {
@@ -87,7 +76,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
                 $scope.loadAccounts();
             })
             .catch(function(err) {
-                alert("Creation failed: " + getErrorMessage(err));
+                alert("Creation failed: " + (err.data.message || "Server Error"));
             });
     };
 
@@ -126,7 +115,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
                 $scope.loadAccounts();
             })
             .catch(function(err) {
-                alert("Update failed: " + getErrorMessage(err));
+                alert("Update failed: " + (err.data || "Server Error"));
             });
     };
 
@@ -140,7 +129,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
                 $scope.loadAccounts();
             })
             .catch(function(err) {
-                alert("Action failed: " + getErrorMessage(err));
+                alert("Action failed: " + (err.data || "Server Error"));
             });
     };
 
@@ -154,7 +143,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
                 $scope.loadAccounts();
             })
             .catch(function(err) {
-                alert("Enable failed: " + getErrorMessage(err));
+                alert("Enable failed: " + (err.data || "Server Error"));
             });
     };
 
@@ -184,7 +173,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
                 $scope.loadTransactions();
             })
             .catch(function(err) {
-                alert("Transfer failed: " + getErrorMessage(err));
+                alert("Transfer failed: " + (err.data || "Check balance"));
             });
     };
 

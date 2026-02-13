@@ -6,7 +6,7 @@
 
 app.controller('CustomerController', function($scope, $http, $window) {
     // Configuration
-    const BASE_URL = "http://localhost:8082/api"; 
+    const BASE_URL = "http://localhost:8082/api";
     const sessionKey = "loggedUser";
 
     // Scope variables
