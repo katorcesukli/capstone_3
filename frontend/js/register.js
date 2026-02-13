@@ -37,7 +37,7 @@ app.controller('RegisterController', function($scope, $http, $window) {
         const payload = {
             username: $scope.regData.username,
             password: $scope.regData.password,
-            role: 'USER' // Default role for new registrations
+            role: 'CUSTOMER' // Default role for new registrations
         };
 
         console.log("Registering user:", payload.username);

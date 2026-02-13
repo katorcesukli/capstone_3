@@ -63,12 +63,19 @@ body {
     letter-spacing: 1px;
 }
 
-.nav-user span {
-    font-size: 0.95rem;
+/* --- Cards --- */
+/* Separated auth-card to fix the stretching issue */
+.auth-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    width: 100%;
+    max-width: 420px; /* This prevents the box from stretching across the screen */
+    box-sizing: border-box;
 }
 
-/* --- Cards --- */
-.auth-card, .card {
+.card {
     background: var(--white);
     padding: 2rem;
     border-radius: 12px;
@@ -76,29 +83,46 @@ body {
     margin-bottom: 20px;
 }
 
-.auth-card {
-    width: 100%;
-    max-width: 400px;
-}
-
-.balance-card {
-    background: linear-gradient(135deg, var(--primary-blue), #2980b9);
-    color: white;
-    padding: 2.5rem;
-    border-radius: 12px;
+/* Utility for Auth Headers (MBS Logo) */
+.auth-header {
+    text-align: center;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 20px rgba(26, 79, 139, 0.4);
-    transition: transform 0.3s ease;
 }
 
-.balance-card:hover {
-    transform: translateY(-5px);
+.auth-header h1 {
+    color: var(--primary-blue);
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
 }
 
-.balance-amount {
-    font-size: 3rem;
-    font-weight: bold;
-    margin: 10px 0;
+/* --- Modal & Overlay --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 /* --- Forms & Inputs --- */
@@ -131,11 +155,6 @@ input:focus, select:focus {
     box-shadow: 0 0 0 3px rgba(26, 79, 139, 0.1);
 }
 
-input:disabled {
-    background-color: #f8f9fa;
-    cursor: not-allowed;
-}
-
 /* --- Buttons --- */
 button, .btn-primary {
     width: 100%;
@@ -155,14 +174,9 @@ button:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-button:active {
-    transform: scale(0.98);
-}
-
 button:disabled {
     background-color: #bdc3c7;
     cursor: not-allowed;
-    transform: none;
 }
 
 .btn-logout {
@@ -181,6 +195,12 @@ button:disabled {
     color: var(--primary-blue);
     border: 1px solid var(--primary-blue);
     width: auto;
+    padding: 8px 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
 }
 
 .btn-refresh:hover {
@@ -188,7 +208,30 @@ button:disabled {
     color: white;
 }
 
-/* --- Tables --- */
+/* --- Pagination --- */
+.pagination-row {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.pagination-row button {
+    width: auto;
+    padding: 6px 16px;
+    background: var(--white);
+    color: var(--primary-blue);
+    border: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.pagination-row button:hover:not(:disabled) {
+    background: var(--light-gray);
+    border-color: var(--primary-blue);
+}
+
+/* --- Tables & Badges --- */
 .transaction-table {
     width: 100%;
     border-collapse: collapse;
@@ -205,55 +248,31 @@ button:disabled {
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.8rem;
-    letter-spacing: 0.5px;
 }
 
 .transaction-table td {
     padding: 15px 12px;
     border-bottom: 1px solid #f0f0f0;
     font-size: 0.95rem;
-    color: #333;
 }
 
-.transaction-table tr:last-child td {
-    border-bottom: none;
-}
-
-.transaction-table tr:hover {
-    background-color: #fcfcfc;
+.role-badge {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 50px;
+    background: #e9ecef;
+    color: var(--secondary-blue);
+    font-weight: bold;
+    text-transform: uppercase;
 }
 
 /* --- Utilities --- */
-.text-center { text-align: center; }
 .text-success { color: var(--success-green) !important; font-weight: bold; }
 .text-danger { color: var(--danger-red) !important; font-weight: bold; }
-
-.error {
-    color: var(--danger-red);
-    background-color: #fdf2f2;
-    padding: 12px;
-    border-radius: 6px;
-    border: 1px solid #f9d6d6;
-    text-align: center;
-    font-size: 0.85rem;
-    margin-bottom: 15px;
-}
-
-/* Sidebar Specific */
-.sidebar-actions {
-    display: flex;
-    flex-direction: column;
-}
 
 /* Responsive Grid */
 @media (max-width: 992px) {
     .dashboard-container > div {
         grid-template-columns: 1fr !important;
     }
-}
-
-@media (max-width: 480px) {
-    .dashboard-container { padding: 1rem; }
-    .navbar { padding: 1rem; flex-direction: column; gap: 10px; }
-    .balance-amount { font-size: 2rem; }
 }
