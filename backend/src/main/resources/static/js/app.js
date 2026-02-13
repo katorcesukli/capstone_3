@@ -14,6 +14,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
     // Model Initialization
     $scope.accounts = [];
     $scope.transactions = [];
+    // PRESET: Role is set to CUSTOMER by default
     $scope.newAccount = { username: '', password: '', role: 'CUSTOMER', balance: 0 };
     $scope.transferData = {};
     $scope.actionData = { accountId: null, amount: 0 };
@@ -28,6 +29,14 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
     $scope.showEditModal = false;
     $scope.editingAcc = {};
     $scope.modalData = {};
+
+    /**
+     * Helper to safely extract error messages and avoid [object Object]
+     */
+    const parseError = function(err) {
+        if (!err.data) return "Connection Error";
+        return (typeof err.data === 'string') ? err.data : (err.data.message || JSON.stringify(err.data));
+    };
 
     // Watcher: Reset account page to 0 whenever search query changes
     $scope.$watch('searchUser', function(newVal, oldVal) {
@@ -67,16 +76,18 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
 
     $scope.createAccount = function() {
         var accountToCreate = angular.copy($scope.newAccount);
+        // Ensure role is uppercase for backend compatibility (CUSTOMER/ADMIN)
         accountToCreate.role = accountToCreate.role.toUpperCase();
 
         $http.post(BASE_URL + '/accounts', accountToCreate)
             .then(function() {
                 alert("Account created successfully!");
+                // RESET: Returns to CUSTOMER preset after successful creation
                 $scope.newAccount = { username: '', password: '', role: 'CUSTOMER', balance: 0 };
                 $scope.loadAccounts();
             })
             .catch(function(err) {
-                alert("Creation failed: " + (err.data.message || "Server Error"));
+                alert("Creation failed: " + parseError(err));
             });
     };
 
@@ -115,7 +126,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
                 $scope.loadAccounts();
             })
             .catch(function(err) {
-                alert("Update failed: " + (err.data || "Server Error"));
+                alert("Update failed: " + parseError(err));
             });
     };
 
@@ -129,7 +140,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
                 $scope.loadAccounts();
             })
             .catch(function(err) {
-                alert("Action failed: " + (err.data || "Server Error"));
+                alert("Action failed: " + parseError(err));
             });
     };
 
@@ -143,7 +154,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
                 $scope.loadAccounts();
             })
             .catch(function(err) {
-                alert("Enable failed: " + (err.data || "Server Error"));
+                alert("Enable failed: " + parseError(err));
             });
     };
 
@@ -173,7 +184,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
                 $scope.loadTransactions();
             })
             .catch(function(err) {
-                alert("Transfer failed: " + (err.data || "Check balance"));
+                alert("Transfer failed: " + parseError(err));
             });
     };
 

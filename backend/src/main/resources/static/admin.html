@@ -6,6 +6,10 @@
     <title>MBS | Admin Dashboard</title>
     <link rel="stylesheet" href="css/style.css">
     <script>
+        /**
+         * Author: Baldano, Estrellado, & Tan
+         * Version: 2026.02.12
+         */
         // Pre-boot security check
         const user = JSON.parse(localStorage.getItem('loggedUser'));
         if (!user || user.role.toUpperCase() !== 'ADMIN') {
@@ -34,7 +38,7 @@
             <label>Role</label>
             <select ng-model="modalData.role">
                 <option value="">(Keep as {{editingAcc.role}})</option>
-                <option value="USER">CUSTOMER</option>
+                <option value="CUSTOMER">CUSTOMER</option>
                 <option value="ADMIN">ADMINISTRATOR</option>
             </select>
         </div>
@@ -76,7 +80,7 @@
                     <div class="form-group">
                         <label>User Role</label>
                         <select ng-model="newAccount.role">
-                            <option value="USER">CUSTOMER</option>
+                            <option value="CUSTOMER">CUSTOMER</option>
                             <option value="ADMIN">ADMINISTRATOR</option>
                         </select>
                     </div>
@@ -93,13 +97,13 @@
                 <form ng-submit="transferMoney()">
                     <div class="form-group">
                         <label>Source Account</label>
-                        <select ng-model="transferData.sourceId" ng-options="acc.id as acc.username for acc in accounts" required>
+                        <select ng-model="transferData.sourceId" ng-options="acc.id as (acc.username + ' (#' + acc.id + ')') for acc in accounts" required>
                             <option value="">-- Select Source --</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Destination Account</label>
-                        <select ng-model="transferData.destinationId" ng-options="acc.id as acc.username for acc in accounts" required>
+                        <select ng-model="transferData.destinationId" ng-options="acc.id as (acc.username + ' (#' + acc.id + ')') for acc in accounts" required>
                             <option value="">-- Select Recipient --</option>
                         </select>
                     </div>
@@ -113,7 +117,6 @@
         </div>
 
         <div class="main-content">
-
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h3 style="margin:0;">Master Account List</h3>
@@ -134,16 +137,22 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr ng-repeat="acc in (filteredAccounts = (accounts | filter:{username: searchUser})) | limitTo:5:accPage*5">
+                        <tr ng-repeat="acc in (filteredAccounts = (accounts | filter:{username: searchUser})) | limitTo:5:accPage*5"
+                            ng-style="acc.role === 'DISABLED' && {'opacity': '0.6', 'background-color': '#f8f9fa'}">
                             <td>#00{{acc.id}}</td>
                             <td><strong>{{acc.username}}</strong></td>
-                            <td><span class="role-badge">{{acc.role}}</span></td>
+                            <td>
+                                <span class="role-badge"
+                                      ng-style="acc.role === 'DISABLED' && {'background': '#6c757d'}">
+                                    {{acc.role}}
+                                </span>
+                            </td>
                             <td>₱ {{acc.balance | number:2}}</td>
                             <td>
                                 <button ng-click="openEditModal(acc)" class="btn-refresh" style="background: #ffc107; padding: 4px 8px; font-size: 0.8rem; border-color: #e0a800; color: #000;">Edit</button>
 
                                 <button ng-if="acc.role !== 'DISABLED'" ng-click="deleteAccount(acc.id)" class="btn-logout" style="padding: 4px 8px; font-size: 0.8rem;">Disable</button>
-                                <button ng-if="acc.role === 'DISABLED'" ng-click="enableAccount(acc.id)" class="btn-primary" style="padding: 4px 8px; font-size: 0.8rem; background-color: var(--success-green); width: auto;">Enable</button>
+                                <button ng-if="acc.role === 'DISABLED'" ng-click="enableAccount(acc.id)" class="btn-primary" style="padding: 4px 8px; font-size: 0.8rem; background-color: #28a745; width: auto; border: none;">Enable</button>
                             </td>
                         </tr>
                         <tr ng-if="filteredAccounts.length === 0">
@@ -197,7 +206,6 @@
                     <button ng-disabled="(txPage + 1) * 5 >= transactions.length" ng-click="txPage = txPage + 1">Next</button>
                 </div>
             </div>
-
         </div>
     </div>
 </div>
