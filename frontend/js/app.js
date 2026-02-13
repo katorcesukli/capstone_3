@@ -14,7 +14,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
     // Model Initialization
     $scope.accounts = [];
     $scope.transactions = [];
-    $scope.newAccount = { username: '', password: '', role: 'USER', balance: 0 };
+    $scope.newAccount = { username: '', password: '', role: 'CUSTOMER', balance: 0 };
     $scope.transferData = {};
     $scope.actionData = { accountId: null, amount: 0 };
     $scope.errorMessage = "";
@@ -72,7 +72,7 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
         $http.post(BASE_URL + '/accounts', accountToCreate)
             .then(function() {
                 alert("Account created successfully!");
-                $scope.newAccount = { username: '', password: '', role: 'USER', balance: 0 };
+                $scope.newAccount = { username: '', password: '', role: 'CUSTOMER', balance: 0 };
                 $scope.loadAccounts();
             })
             .catch(function(err) {

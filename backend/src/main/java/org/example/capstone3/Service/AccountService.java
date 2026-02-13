@@ -62,7 +62,7 @@ public class AccountService {
     // ENABLE ACCOUNT (Reactivate)
     public void enableAccount(Long id) {
         Account account = getAccountById(id);
-        account.setRole("USER"); // Or restore to CUSTOMER
+        account.setRole("CUSTOMER"); // Or restore to CUSTOMER
         accountRepository.save(account);
     }
 
@@ -80,7 +80,7 @@ public class AccountService {
             throw new RuntimeException("Username '" + account.getUsername() + "' is already taken");
         }
 
-        account.setRole("USER"); // Standard role name for frontend consistency
+        account.setRole("CUSTOMER"); // Standard role name for frontend consistency
         account.setAccountId(UUID.randomUUID().toString().substring(0, 8));
         account.setBalance(0.0);
 
