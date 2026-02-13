@@ -72,12 +72,7 @@ public class AccountController {
         }
     }
 
-    //softdelete
-    @PutMapping("/disable/{id}")
-    public void deleteAccount(@PathVariable Long id) {
-        accountService.deleteAccount(id);
-        return ResponseEntity.ok(Map.of("message", "Account deleted from database"));
-    }
+
 
     // AUTHENTICATION
     @PostMapping("/register")
