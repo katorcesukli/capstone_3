@@ -55,9 +55,19 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-    // DELETE
-    public void deleteAccount(Long id) {
-        accountRepository.deleteById(id);
+
+
+    //soft delete, does not remove in db but just sets role as disabled
+    public Account deleteAccount(Long id) {
+        Account account = getAccountById(id);
+
+        // Clear sensitive info
+        account.setUsername("Disabled_ID: " + account.getId());
+        account.setPassword("disabled");  // remove password
+        account.setBalance(0.0);
+        account.setRole("disabled");
+
+        return accountRepository.save(account);
     }
 
 
