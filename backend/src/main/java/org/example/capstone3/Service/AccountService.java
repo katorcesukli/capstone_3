@@ -6,21 +6,31 @@ import org.example.capstone3.Repository.AccountRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
+/**
+ * Authors: Baldano, Estrellado, & Tan
+ * Version: 2026.02.12
+ */
 @Service
 @RequiredArgsConstructor
 public class AccountService {
 
     private final AccountRepository accountRepository;
 
-    // CREATE
-    public Account createAccount(Account account) {
-        // Simple logic to generate the next 4-digit ID string based on the primary key
+    // Helper method to generate the next formatted Account ID string (e.g., 0001, 0002)
+    private String generateNextAccountId() {
         Account lastAccount = accountRepository.findTopByOrderByIdDesc();
         long nextId = (lastAccount != null) ? lastAccount.getId() + 1 : 1;
-        account.setAccountId(String.format("%04d", nextId));
+        return String.format("%04d", nextId);
+    }
 
+    // CREATE (Used by Admin Dashboard)
+    public Account createAccount(Account account) {
+        account.setAccountId(generateNextAccountId());
+        // Default to CUSTOMER if no role is provided
+        if (account.getRole() == null) {
+            account.setRole("CUSTOMER");
+        }
         return accountRepository.save(account);
     }
 
@@ -39,30 +49,31 @@ public class AccountService {
     public Account updateAccount(Long id, Account updatedAccount) {
         Account account = getAccountById(id);
 
-        account.setUsername(updatedAccount.getUsername());
-        account.setPassword(updatedAccount.getPassword());
-        account.setRole(updatedAccount.getRole());
-        account.setBalance(updatedAccount.getBalance());
+        // Only update fields if they are provided in the request
+        if (updatedAccount.getUsername() != null) account.setUsername(updatedAccount.getUsername());
+        if (updatedAccount.getPassword() != null) account.setPassword(updatedAccount.getPassword());
+        if (updatedAccount.getRole() != null) account.setRole(updatedAccount.getRole());
+        if (updatedAccount.getBalance() != null) account.setBalance(updatedAccount.getBalance());
 
         return accountRepository.save(account);
     }
 
     // DISABLE ACCOUNT (Soft Delete)
     public void disableAccount(Long id) {
-        Account account = getAccountById(id);
-        // Prevent disabling the main admin (assuming ID 1 is Admin)
-        if (id == 1) throw new RuntimeException("Cannot disable primary administrator");
+        // Validation: Prevent the Admin (ID 1) from disabling themselves
+        if (id == 1) {
+            throw new RuntimeException("Security Violation: The primary Administrator account cannot be disabled.");
+        }
 
+        Account account = getAccountById(id);
         account.setRole("DISABLED");
-        // Optional: Sanitize sensitive data if needed
-        // account.setPassword("SUSPENDED-" + UUID.randomUUID().toString().substring(0,8));
         accountRepository.save(account);
     }
 
     // ENABLE ACCOUNT (Reactivate)
     public void enableAccount(Long id) {
         Account account = getAccountById(id);
-        account.setRole("CUSTOMER"); // Or restore to CUSTOMER
+        account.setRole("CUSTOMER");
         accountRepository.save(account);
     }
 
@@ -74,15 +85,21 @@ public class AccountService {
         accountRepository.deleteById(id);
     }
 
-    // REGISTRATION
+    // REGISTRATION (Standardized to 4-digit ID logic)
     public Account register(Account account) {
+        // Validation: Unique Username
         if (accountRepository.findByUsername(account.getUsername()).isPresent()) {
             throw new RuntimeException("Username '" + account.getUsername() + "' is already taken");
         }
 
-        account.setRole("CUSTOMER"); // Standard role name for frontend consistency
-        account.setAccountId(UUID.randomUUID().toString().substring(0, 8));
-        account.setBalance(0.0);
+        account.setRole("CUSTOMER");
+        // FIX: Replaced UUID logic with the formatted sequence logic
+        account.setAccountId(generateNextAccountId());
+
+        // Ensure balance is 0 for new registrations if not specified
+        if (account.getBalance() == null) {
+            account.setBalance(0.0);
+        }
 
         return accountRepository.save(account);
     }
@@ -92,6 +109,7 @@ public class AccountService {
         Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
+        // Validation: Prevent login for disabled users
         if ("DISABLED".equalsIgnoreCase(account.getRole())) {
             throw new RuntimeException("This account has been disabled. Please contact support.");
         }
