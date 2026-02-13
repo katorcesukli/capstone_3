@@ -72,9 +72,9 @@ public class AccountController {
         }
     }
 
-    // PHYSICAL DELETE (Optional - use sparingly)
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteAccount(@PathVariable Long id) {
+    //softdelete
+    @PutMapping("/disable/{id}")
+    public void deleteAccount(@PathVariable Long id) {
         accountService.deleteAccount(id);
         return ResponseEntity.ok(Map.of("message", "Account deleted from database"));
     }
