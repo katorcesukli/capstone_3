@@ -43,8 +43,8 @@ public class AccountController {
         return accountService.updateAccount(id, account);
     }
 
-    // DELETE
-    @DeleteMapping("/{id}")
+    //softdelete
+    @PutMapping("/disable/{id}")
     public void deleteAccount(@PathVariable Long id) {
         accountService.deleteAccount(id);
     }
