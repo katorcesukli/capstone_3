@@ -1,44 +1,85 @@
-const form = document.getElementById('loginForm');
-const message = document.getElementById('message');
+/**
+ * Login Controller for Mini Banking System
+ * Author: Baldano, Estrellado, & Tan
+ * Version: 2026.02.12
+ */
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+app.controller('LoginController', function($scope, $http, $window) {
+    // Configuration
+    const BASE_URL = "http://localhost:8082/api";
+    const sessionKey = "loggedUser";
 
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
+    // Initialize scope variables
+    $scope.loginData = {
+        username: '',
+        password: ''
+    };
+    $scope.errorMessage = '';
+    $scope.isSubmitting = false;
 
-    if (!username || !password) {
-        message.textContent = 'Username and password are required';
-        return;
-    }
+    // ================= AUTO-REDIRECT IF LOGGED IN =================
+    $scope.checkSession = function() {
+        const savedUser = localStorage.getItem(sessionKey);
+        if (savedUser) {
+            const user = JSON.parse(savedUser);
+            if (user.role && user.role.toUpperCase() === 'ADMIN') {
+                $window.location.href = 'admin.html';
+            } else {
+                $window.location.href = 'customer.html';
+            }
+        }
+    };
 
-    try {
-        const response = await fetch('/api/accounts/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            message.textContent = errorData.message || 'Login failed';
+    // ================= LOGIN FUNCTION =================
+    $scope.login = function() {
+        // Basic validation
+        if (!$scope.loginData.username || !$scope.loginData.password) {
+            $scope.errorMessage = "Please enter both username and password.";
             return;
         }
 
-        const user = await response.json();
+        // Reset state
+        $scope.isSubmitting = true;
+        $scope.errorMessage = '';
 
-        // Save user in localStorage/sessionStorage
-        localStorage.setItem('loggedUser', JSON.stringify(user));
+        console.log("Attempting login for:", $scope.loginData.username);
 
-        // Redirect based on role
-        if (user.role.toLowerCase() === 'admin') {
-            window.location.href = 'admin.html';
-        } else {
-            window.location.href = 'customer.html';
-        }
+        $http.post(`${BASE_URL}/accounts/login`, $scope.loginData)
+            .then(function(response) {
+                const user = response.data;
 
-    } catch (err) {
-        console.error(err);
-        message.textContent = 'Server error';
-    }
+                // 1. Save user session to localStorage
+                localStorage.setItem(sessionKey, JSON.stringify(user));
+
+                // 2. Success Feedback
+                console.log("Login successful. Role:", user.role);
+
+                // 3. Redirect based on role
+                if (user.role && user.role.toUpperCase() === 'ADMIN') {
+                    $window.location.href = 'admin.html';
+                } else {
+                    $window.location.href = 'customer.html';
+                }
+            })
+            .catch(function(error) {
+                console.error("Login Error:", error);
+
+                if (error.status === -1) {
+                    $scope.errorMessage = "Cannot connect to server. Is the Backend running?";
+                } else if (error.status === 401) {
+                    // Matches the UNAUTHORIZED status from AccountController.login
+                    $scope.errorMessage = (error.data && error.data.message) 
+                                          ? error.data.message 
+                                          : "Invalid username or password.";
+                } else {
+                    $scope.errorMessage = "An unexpected error occurred. Please try again.";
+                }
+            })
+            .finally(function() {
+                $scope.isSubmitting = false;
+            });
+    };
+
+    // Run session check on load
+    $scope.checkSession();
 });

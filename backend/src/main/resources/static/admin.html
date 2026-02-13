@@ -1,69 +1,153 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="miniBankingApp">
 <head>
     <meta charset="UTF-8">
-    <title>Simple Banking System</title>
-    <link rel="stylesheet" href="/css/style.css">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBS | Admin Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script>
+        // Security check before Angular loads
+        const user = JSON.parse(localStorage.getItem('loggedUser'));
+        if (!user || user.role.toUpperCase() !== 'ADMIN') {
+            window.location.href = 'login.html';
+        }
+    </script>
 </head>
-<body>
+<body ng-controller="BankingController" ng-cloak>
 
-<h1>Banking System</h1>
+<nav class="navbar">
+    <div class="nav-brand">MBS | Administrator Portal</div>
+    <div class="nav-user">
+        <span>Logged in as: <strong>Admin</strong></span>
+        <button class="btn-logout" ng-click="adminLogout()" style="margin-left: 15px; background: #dc3545; color: white; border: none; padding: 5px 12px; cursor: pointer; border-radius: 4px;">Logout</button>
+    </div>
+</nav>
 
-<!-- CREATE ACCOUNT -->
-<div class="card">
-    <h2>Create Account</h2>
-    <input type="text" id="username" placeholder="Username"><br>
-    <input type="password" id="password" placeholder="Password"><br>
-    <input type="text" id="role" placeholder="Role"><br>
-    <input type="number" id="balance" placeholder="Initial Balance"><br>
-    <button onclick="createAccount()">Create Account</button>
+<div class="dashboard-container">
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+
+        <div class="sidebar-actions">
+            <div class="card">
+                <h3>Create New Account</h3>
+                <form ng-submit="createAccount()">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" ng-model="newAccount.username" placeholder="Username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" ng-model="newAccount.password" placeholder="Password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>User Role</label>
+                        <select ng-model="newAccount.role">
+                            <option value="USER">CUSTOMER</option>
+                            <option value="ADMIN">ADMINISTRATOR</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Initial Balance (₱)</label>
+                        <input type="number" ng-model="newAccount.balance" placeholder="0.00" step="0.01">
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%;">Register Account</button>
+                </form>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h3>System Transfer</h3>
+                <form ng-submit="transferMoney()">
+                    <div class="form-group">
+                        <label>Source Account</label>
+                        <select ng-model="transferData.sourceId" ng-options="acc.id as acc.username for acc in accounts" required>
+                            <option value="">-- Select Source --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Destination Account</label>
+                        <select ng-model="transferData.destinationId" ng-options="acc.id as acc.username for acc in accounts" required>
+                            <option value="">-- Select Recipient --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (₱)</label>
+                        <input type="number" ng-model="transferData.amount" placeholder="0.00" required step="0.01">
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; background-color: #007bff;">Execute Transfer</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin:0;">Master Account List</h3>
+                    <button ng-click="loadAccounts()" class="btn-refresh" style="width: auto; padding: 5px 15px; cursor: pointer;">Refresh</button>
+                </div>
+                <table class="transaction-table">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Balance</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="acc in accounts">
+                        <td>#00{{acc.id}}</td>
+                        <td><strong>{{acc.username}}</strong></td>
+                        <td><span style="font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; background: #eee;">{{acc.role}}</span></td>
+                        <td>₱ {{acc.balance | number:2}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin:0;">System-wide Transactions</h3>
+                    <button ng-click="loadTransactions()" class="btn-refresh" style="width: auto; padding: 5px 15px; cursor: pointer;">Refresh</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="transaction-table">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="tx in transactions | orderBy:'-id'">
+                            <td>#{{tx.id}}</td>
+                            <td>
+                                <span ng-if="tx.sourceAccount"><strong>{{tx.sourceAccount.username}}</strong></span>
+                                <span ng-if="!tx.sourceAccount" style="color: #888; font-style: italic;">(External Deposit)</span>
+                            </td>
+                            <td>
+                                <span ng-if="tx.destinationAccount"><strong>{{tx.destinationAccount.username}}</strong></span>
+                                <span ng-if="!tx.destinationAccount" style="color: #888; font-style: italic;">(Cash Withdrawal)</span>
+                            </td>
+                            <td ng-style="{ 'color': (!tx.destinationAccount ? '#dc3545' : '#28a745'), 'font-weight': 'bold' }">
+                                {{ !tx.destinationAccount ? '-' : '+' }} ₱ {{tx.transfer_amount | number:2}}
+                            </td>
+                            <td style="font-size: 0.85rem; color: #666;">{{tx.date}}</td>
+                        </tr>
+                        <tr ng-if="transactions.length === 0">
+                            <td colspan="5" style="text-align: center; padding: 20px; color: #999;">No transactions found.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- ACCOUNT LIST -->
-<div class="card">
-    <h2>Accounts</h2>
-    <button onclick="loadAccounts()">Refresh Accounts</button>
-    <table>
-        <thead>
-        <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Role</th>
-            <th>Balance</th>
-        </tr>
-        </thead>
-        <tbody id="accountTable"></tbody>
-    </table>
-</div>
-
-<!-- TRANSFER -->
-<div class="card">
-    <h2>Transfer Money</h2>
-    <select id="sourceAccount"></select><br>
-    <select id="destinationAccount"></select><br>
-    <input type="number" id="amount" placeholder="Amount"><br>
-    <button onclick="transferMoney()">Transfer</button>
-</div>
-
-<!-- TRANSACTION LIST -->
-<div class="card">
-    <h2>Transactions</h2>
-    <button onclick="loadTransactions()">Refresh Transactions</button>
-    <table>
-        <thead>
-        <tr>
-            <th>ID</th>
-            <th>Source</th>
-            <th>Destination</th>
-            <th>Amount</th>
-            <th>Date</th>
-        </tr>
-        </thead>
-        <tbody id="transactionTable"></tbody>
-    </table>
-</div>
-
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
 <script src="js/app.js"></script>
+
 </body>
 </html>

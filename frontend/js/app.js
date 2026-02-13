@@ -1,122 +1,141 @@
-const BASE_URL = "http://localhost:8080/api";
+/**
+ * Main AngularJS Module for Mini Banking System
+ * Author: Baldano, Estrellado, & Tan
+ * Version: 2026.02.12
+ */
 
-// ================= CREATE ACCOUNT =================
-async function createAccount() {
+var app = angular.module('miniBankingApp', []);
 
-    const account = {
-        username: document.getElementById("username").value,
-        password: document.getElementById("password").value,
-        role: document.getElementById("role").value,
-        balance: parseFloat(document.getElementById("balance").value)
+// Global Configuration - Ensure port matches your Spring Boot server.port
+app.constant('BASE_URL', 'http://localhost:8082/api');
+
+app.controller('BankingController', function($scope, $http, BASE_URL) {
+    
+    // Model Initialization
+    $scope.accounts = [];
+    $scope.transactions = [];
+    $scope.newAccount = { username: '', password: '', role: 'USER', balance: 0 };
+    $scope.transferData = {};
+    $scope.actionData = { accountId: null, amount: 0 }; // For Deposit/Withdraw
+    $scope.errorMessage = "";
+
+    // ================= AUTH & SESSION =================
+    $scope.adminLogout = function() {
+        // Clear session data
+        localStorage.removeItem('loggedUser');
+        // Redirect to login
+        window.location.href = 'login.html';
     };
 
-    await fetch(`${BASE_URL}/accounts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(account)
-    });
-
-    alert("Account created!");
-    loadAccounts();
-}
-
-// ================= LOAD ACCOUNTS =================
-async function loadAccounts() {
-
-    const response = await fetch(`${BASE_URL}/accounts`);
-    const accounts = await response.json();
-
-    const table = document.getElementById("accountTable");
-    table.innerHTML = "";
-
-    const sourceSelect = document.getElementById("sourceAccount");
-    const destSelect = document.getElementById("destinationAccount");
-
-    sourceSelect.innerHTML = "";
-    destSelect.innerHTML = "";
-
-    accounts.forEach(acc => {
-
-        // Table
-        table.innerHTML += `
-            <tr>
-                <td>${acc.id}</td>
-                <td>${acc.username}</td>
-                <td>${acc.role}</td>
-                <td>${acc.balance}</td>
-            </tr>
-        `;
-
-        // Dropdowns
-        sourceSelect.innerHTML += `
-            <option value="${acc.id}">${acc.username}</option>
-        `;
-
-        destSelect.innerHTML += `
-            <option value="${acc.id}">${acc.username}</option>
-        `;
-    });
-}
-
-// ================= TRANSFER =================
-async function transferMoney() {
-
-    const sourceId = document.getElementById("sourceAccount").value;
-    const destinationId = document.getElementById("destinationAccount").value;
-    const amount = parseInt(document.getElementById("amount").value);
-
-    if (sourceId === destinationId) {
-        alert("Cannot transfer to same account!");
-        return;
-    }
-
-    const transaction = {
-        transferAmount: amount,
-        sourceAccount: { id: sourceId },
-        destinationAccount: { id: destinationId }
+    // ================= LOAD DATA =================
+    $scope.loadAccounts = function() {
+        $http.get(BASE_URL + '/accounts')
+            .then(function(response) {
+                $scope.accounts = response.data;
+            })
+            .catch(function(err) {
+                console.error("Error loading accounts", err);
+            });
     };
 
-    const response = await fetch(`${BASE_URL}/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(transaction)
-    });
+    $scope.loadTransactions = function() {
+        $http.get(BASE_URL + '/transactions')
+            .then(function(response) {
+                $scope.transactions = response.data;
+            })
+            .catch(function(err) {
+                console.error("Error loading transactions", err);
+            });
+    };
 
-    if (!response.ok) {
-        alert("Transfer failed!");
-        return;
-    }
+    // ================= ACCOUNT ACTIONS =================
+    $scope.createAccount = function() {
+        // Ensure role is sent in uppercase for Spring Boot Enums
+        var accountToCreate = angular.copy($scope.newAccount);
+        accountToCreate.role = accountToCreate.role.toUpperCase();
 
-    alert("Transfer successful!");
-    loadAccounts();
-    loadTransactions();
-}
+        $http.post(BASE_URL + '/accounts', accountToCreate)
+            .then(function() {
+                alert("Account created successfully!");
+                $scope.newAccount = { username: '', password: '', role: 'USER', balance: 0 };
+                $scope.loadAccounts();
+            })
+            .catch(function(err) {
+                alert("Creation failed: " + (err.data.message || "Server Error"));
+            });
+    };
 
-// ================= LOAD TRANSACTIONS =================
-async function loadTransactions() {
+    // ================= TRANSACTION ACTIONS =================
 
-    const response = await fetch(`${BASE_URL}/transactions`);
-    const transactions = await response.json();
+    // TRANSFER
+    $scope.transferMoney = function() {
+        if (!$scope.transferData.sourceId || !$scope.transferData.destinationId) {
+            alert("Please select both accounts.");
+            return;
+        }
 
-    const table = document.getElementById("transactionTable");
-    table.innerHTML = "";
+        if ($scope.transferData.sourceId === $scope.transferData.destinationId) {
+            alert("Cannot transfer to the same account!");
+            return;
+        }
 
-    transactions.forEach(tx => {
+        var transaction = {
+            transfer_amount: $scope.transferData.amount,
+            sourceAccount: { id: $scope.transferData.sourceId },
+            destinationAccount: { id: $scope.transferData.destinationId }
+        };
 
-        table.innerHTML += `
-            <tr>
-                <td>${tx.id}</td>
-                <td>${tx.sourceAccount.username}</td>
-                <td>${tx.destinationAccount.username}</td>
-                <td>${tx.transferAmount}</td>
-                <td>${tx.date}</td>
-            </tr>
-        `;
-    });
-}
+        $http.post(BASE_URL + '/transactions/transfer', transaction)
+            .then(function() {
+                alert("Transfer successful!");
+                $scope.transferData = {}; 
+                $scope.loadAccounts();
+                $scope.loadTransactions();
+            })
+            .catch(function(err) {
+                alert("Transfer failed: " + (err.data || "Check balance or account IDs"));
+            });
+    };
 
-// Auto load on page open
-window.onload = function () {
-    loadAccounts();
-    loadTransactions();
-};
+    // DEPOSIT
+    $scope.depositMoney = function() {
+        $http({
+            url: BASE_URL + '/transactions/deposit',
+            method: "POST",
+            params: { 
+                accountId: $scope.actionData.accountId, 
+                amount: $scope.actionData.amount 
+            }
+        }).then(function() {
+            alert("Deposit successful!");
+            $scope.actionData = { accountId: null, amount: 0 };
+            $scope.loadAccounts();
+            $scope.loadTransactions();
+        }).catch(function(err) {
+            alert("Deposit failed: " + (err.data || "Error"));
+        });
+    };
+
+    // WITHDRAW
+    $scope.withdrawMoney = function() {
+        $http({
+            url: BASE_URL + '/transactions/withdraw',
+            method: "POST",
+            params: { 
+                accountId: $scope.actionData.accountId, 
+                amount: $scope.actionData.amount 
+            }
+        }).then(function() {
+            alert("Withdrawal successful!");
+            $scope.actionData = { accountId: null, amount: 0 };
+            $scope.loadAccounts();
+            $scope.loadTransactions();
+        }).catch(function(err) {
+            alert("Withdrawal failed: " + (err.data || "Insufficient funds"));
+        });
+    };
+
+    // Initial Load
+    $scope.loadAccounts();
+    $scope.loadTransactions();
+});

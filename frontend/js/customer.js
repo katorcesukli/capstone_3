@@ -1,137 +1,152 @@
-const BASE_URL = "http://localhost:8080/api";
-const sessionKey = "loggedUser"; // same key we used in login.js
+/**
+ * Customer Controller for Mini Banking System
+ * Author: Baldano, Estrellado, & Tan
+ * Version: 2026.02.12
+ */
 
-// ================= INIT PAGE =================
-window.onload = async function() {
-    const user = JSON.parse(localStorage.getItem(sessionKey));
-    if (!user) {
-        window.location.href = "login.html"; // redirect if not logged in
-        return;
-    }
+app.controller('CustomerController', function($scope, $http, $window) {
+    // Configuration
+    const BASE_URL = "http://localhost:8082/api"; 
+    const sessionKey = "loggedUser";
 
-    document.getElementById("username").textContent = user.username;
-    document.getElementById("balance").textContent = user.balance;
+    // Scope variables
+    $scope.user = JSON.parse(localStorage.getItem(sessionKey));
+    $scope.accounts = [];
+    $scope.transactions = [];
 
-    await loadAccounts();
-    await loadTransactions();
-};
+    // ================= DATA MODELS (FIXED) =================
+    // Separated these to prevent numbers appearing in both fields simultaneously
+    $scope.transferData = { amount: 0, sourceId: null, destId: null };
+    $scope.depositData = { amount: 0 };
+    $scope.withdrawData = { amount: 0 };
 
-// ================= LOGOUT =================
-function logout() {
-    localStorage.removeItem(sessionKey);
-    window.location.href = "login.html";
-}
-
-// ================= LOAD ACCOUNTS =================
-async function loadAccounts() {
-    try {
-        const response = await fetch(`${BASE_URL}/accounts`);
-        const accounts = await response.json();
-
-        const sourceSelect = document.getElementById("sourceAccount");
-        const destSelect = document.getElementById("destinationAccount");
-
-        sourceSelect.innerHTML = "";
-        destSelect.innerHTML = "";
-
-        const user = JSON.parse(localStorage.getItem(sessionKey));
-
-        // Populate dropdowns
-        accounts.forEach(acc => {
-            // Only allow source dropdown to select **logged-in user**
-            if (acc.username === user.username) {
-                sourceSelect.innerHTML += `<option value="${acc.id}">${acc.username} (Balance: ₱${acc.balance})</option>`;
-            }
-            // Destination dropdown should include all other accounts
-            if (acc.username !== user.username) {
-                destSelect.innerHTML += `<option value="${acc.id}">${acc.username}</option>`;
-            }
-        });
-
-    } catch (err) {
-        console.error(err);
-        alert("Failed to load accounts");
-    }
-}
-
-// ================= TRANSFER MONEY =================
-async function transferMoney() {
-    const sourceId = document.getElementById("sourceAccount").value;
-    const destId = document.getElementById("destinationAccount").value;
-    const amount = parseFloat(document.getElementById("amount").value);
-
-    if (!amount || amount <= 0) {
-        alert("Enter a valid amount");
-        return;
-    }
-
-    if (sourceId === destId) {
-        alert("Cannot transfer to same account");
-        return;
-    }
-
-    const transaction = {
-        transferAmount: amount,
-        sourceAccount: { id: sourceId },
-        destinationAccount: { id: destId }
+    // ================= INIT & AUTH CHECK =================
+    $scope.init = function() {
+        if (!$scope.user) {
+            $window.location.href = "login.html";
+            return;
+        }
+        // Sync internal ID
+        $scope.transferData.sourceId = $scope.user.id;
+        $scope.loadAccounts();
+        $scope.loadTransactions();
     };
 
-    try {
-        const response = await fetch(`${BASE_URL}/transactions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(transaction)
-        });
+    // ================= LOGOUT =================
+    $scope.logout = function() {
+        localStorage.removeItem(sessionKey);
+        $window.location.href = "login.html";
+    };
 
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            alert(data.message || "Transfer failed");
+    // ================= LOAD ACCOUNTS =================
+    $scope.loadAccounts = function() {
+        $http.get(`${BASE_URL}/accounts`)
+            .then(function(response) {
+                // Filter out current user for the destination dropdown
+                $scope.accounts = response.data.filter(acc => acc.id !== $scope.user.id);
+            })
+            .catch(function(err) {
+                console.error("Failed to load accounts", err);
+            });
+    };
+
+    // ================= DEPOSIT =================
+    $scope.depositMoney = function() {
+        if (!$scope.depositData.amount || $scope.depositData.amount <= 0) {
+            alert("Please enter a valid amount to deposit.");
             return;
         }
 
-        alert("Transfer successful!");
-        // Reload accounts and transactions
-        await loadAccounts();
-        await loadTransactions();
+        $http.post(`${BASE_URL}/transactions/deposit?accountId=${$scope.user.id}&amount=${$scope.depositData.amount}`)
+            .then(function(response) {
+                alert("Deposit successful!");
+                $scope.depositData.amount = 0; // Clear specific deposit input
+                $scope.updateDashboard();
+                $scope.loadTransactions();
+            })
+            .catch(function(err) {
+                alert("Deposit failed: " + (err.data || "Server Error"));
+            });
+    };
 
-        // Update user balance in dashboard
-        const updatedUser = await fetch(`${BASE_URL}/accounts/${sourceId}`).then(r => r.json());
-        localStorage.setItem(sessionKey, JSON.stringify(updatedUser));
-        document.getElementById("balance").textContent = updatedUser.balance;
+    // ================= WITHDRAW =================
+    $scope.withdrawMoney = function() {
+        if (!$scope.withdrawData.amount || $scope.withdrawData.amount <= 0) {
+            alert("Please enter a valid amount to withdraw.");
+            return;
+        }
 
-    } catch (err) {
-        console.error(err);
-        alert("Server error during transfer");
-    }
-}
+        if ($scope.withdrawData.amount > $scope.user.balance) {
+            alert("Insufficient funds! Your current balance is ₱" + $scope.user.balance);
+            return;
+        }
 
-// ================= LOAD TRANSACTIONS =================
-async function loadTransactions() {
-    try {
-        const response = await fetch(`${BASE_URL}/transactions`);
-        const transactions = await response.json();
+        $http.post(`${BASE_URL}/transactions/withdraw?accountId=${$scope.user.id}&amount=${$scope.withdrawData.amount}`)
+            .then(function(response) {
+                alert("Withdrawal successful!");
+                $scope.withdrawData.amount = 0; // Clear specific withdraw input
+                $scope.updateDashboard();
+                $scope.loadTransactions();
+            })
+            .catch(function(err) {
+                alert("Withdrawal failed: " + (err.data || "Server Error"));
+            });
+    };
 
-        const table = document.getElementById("transactionTable");
-        table.innerHTML = "";
+    // ================= TRANSFER MONEY =================
+    $scope.transferMoney = function() {
+        if (!$scope.transferData.amount || $scope.transferData.amount <= 0) {
+            alert("Enter a valid amount to transfer.");
+            return;
+        }
 
-        const user = JSON.parse(localStorage.getItem(sessionKey));
+        if (!$scope.transferData.destId) {
+            alert("Please select a recipient account.");
+            return;
+        }
 
-        // Only show transactions where logged-in user is involved
-        transactions.forEach(tx => {
-            if (tx.sourceAccount.username === user.username || tx.destinationAccount.username === user.username) {
-                table.innerHTML += `
-                    <tr>
-                        <td>${tx.id}</td>
-                        <td>${tx.sourceAccount.username}</td>
-                        <td>${tx.destinationAccount.username}</td>
-                        <td>${tx.transferAmount}</td>
-                        <td>${tx.date}</td>
-                    </tr>
-                `;
-            }
-        });
-    } catch (err) {
-        console.error(err);
-        alert("Failed to load transactions");
-    }
-}
+        const transaction = {
+            transfer_amount: $scope.transferData.amount,
+            sourceAccount: { id: $scope.user.id },
+            destinationAccount: { id: $scope.transferData.destId }
+        };
+
+        $http.post(`${BASE_URL}/transactions/transfer`, transaction)
+            .then(function(response) {
+                alert("Transfer successful!");
+                $scope.transferData.amount = 0;
+                $scope.transferData.destId = null;
+                $scope.updateDashboard();
+                $scope.loadTransactions();
+            })
+            .catch(function(err) {
+                alert("Transfer failed: " + (err.data || "Check your balance or recipient ID"));
+            });
+    };
+
+    // ================= UPDATE DASHBOARD BALANCE =================
+    $scope.updateDashboard = function() {
+        $http.get(`${BASE_URL}/accounts/${$scope.user.id}`)
+            .then(function(response) {
+                $scope.user = response.data;
+                localStorage.setItem(sessionKey, JSON.stringify($scope.user));
+            });
+    };
+
+    // ================= LOAD TRANSACTIONS =================
+    $scope.loadTransactions = function() {
+        $http.get(`${BASE_URL}/transactions`)
+            .then(function(response) {
+                $scope.transactions = response.data.filter(tx => {
+                    let isSource = tx.sourceAccount && tx.sourceAccount.id === $scope.user.id;
+                    let isDest = tx.destinationAccount && tx.destinationAccount.id === $scope.user.id;
+                    return isSource || isDest;
+                });
+            })
+            .catch(function(err) {
+                console.error("Failed to load transactions", err);
+            });
+    };
+
+    $scope.init();
+});
