@@ -8,6 +8,10 @@ public class Capstone3Application {
 
     public static void main(String[] args) {
         SpringApplication.run(Capstone3Application.class, args);
+
+        System.out.println("=============================================================");
+        System.out.println("MBS Backend is running on: http://localhost:8082/login.html");
+        System.out.println("=============================================================");
     }
     //angular migration
 }

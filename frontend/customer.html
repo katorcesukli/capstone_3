@@ -1,52 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="miniBankingApp">
 <head>
     <meta charset="UTF-8">
-    <title>Customer Dashboard</title>
-    <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBS | Customer Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script>
+        // Redirect if not logged in
+        const userCheck = JSON.parse(localStorage.getItem('loggedUser'));
+        if (!userCheck) {
+            window.location.href = 'login.html';
+        }
+    </script>
 </head>
-<body>
+<body ng-controller="CustomerController" ng-cloak>
 
-<h1>Customer Dashboard</h1>
+<nav class="navbar">
+    <div class="nav-brand">MBS | Online Banking</div>
+    <div class="nav-user">
+        <span>Welcome, <strong style="text-transform: capitalize;">{{user.username}}</strong></span>
+        <button class="btn-logout" ng-click="logout()" style="margin-left: 15px; background: #dc3545; color: white; border: none; padding: 5px 12px; cursor: pointer; border-radius: 4px;">Logout</button>
+    </div>
+</nav>
 
-<!-- Logged-in user info -->
-<div class="card">
-    <h2>Welcome, <span id="username"></span></h2>
-    <p>Balance: ₱<span id="balance"></span></p>
-    <button onclick="logout()">Logout</button>
+<div class="dashboard-container">
+
+    <div class="balance-card" style="background: linear-gradient(135deg, #004085, #007bff); color: white; padding: 30px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <p style="margin: 0; opacity: 0.9; font-size: 1.1rem;">Total Available Balance</p>
+        <div class="balance-amount" style="font-size: 2.5rem; font-weight: bold; margin: 10px 0;">₱ {{user.balance | number:2}}</div>
+        <p style="font-size: 0.9rem; opacity: 0.8; margin: 0;">Account Ref: #00{{user.id}}</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 25px;">
+
+        <div class="sidebar-actions">
+
+            <div class="card" style="margin-bottom: 20px;">
+                <h3 style="border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Transfer Funds</h3>
+                <form ng-submit="transferMoney()">
+                    <div class="form-group">
+                        <label>Recipient Account</label>
+                        <select ng-model="transferData.destId"
+                                ng-options="acc.id as acc.username for acc in accounts"
+                                required>
+                            <option value="">-- Select Recipient --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (₱)</label>
+                        <input type="number" ng-model="transferData.amount" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%;">Execute Transfer</button>
+                </form>
+            </div>
+
+            <div class="card" style="margin-bottom: 20px;">
+                <h3 style="border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Deposit</h3>
+                <form ng-submit="depositMoney()">
+                    <div class="form-group">
+                        <label>Deposit Amount (₱)</label>
+                        <input type="number" ng-model="depositData.amount" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; background-color: #28a745; border: none;">Deposit Cash</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3 style="border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Withdraw</h3>
+                <form ng-submit="withdrawMoney()">
+                    <div class="form-group">
+                        <label>Withdrawal Amount (₱)</label>
+                        <input type="number" ng-model="withdrawData.amount" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; background-color: #dc3545; border: none;">Request Withdrawal</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h3 style="border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Transaction History</h3>
+                <div style="overflow-x: auto;">
+                    <table class="transaction-table">
+                        <thead>
+                        <tr>
+                            <th>Ref ID</th>
+                            <th>Activity</th>
+                            <th>Details</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="tx in transactions | orderBy:'-id'">
+                            <td>#{{tx.id}}</td>
+                            <td>
+                                <span ng-if="tx.sourceAccount.id === user.id && tx.destinationAccount">Transfer Sent</span>
+                                <span ng-if="tx.destinationAccount.id === user.id && tx.sourceAccount">Transfer Received</span>
+                                <span ng-if="!tx.sourceAccount" style="color: #28a745; font-weight: bold;">Deposit</span>
+                                <span ng-if="!tx.destinationAccount" style="color: #dc3545; font-weight: bold;">Withdrawal</span>
+                            </td>
+                            <td>
+                                <span ng-if="tx.sourceAccount.id === user.id && tx.destinationAccount">To: {{tx.destinationAccount.username}}</span>
+                                <span ng-if="tx.destinationAccount.id === user.id && tx.sourceAccount">From: {{tx.sourceAccount.username}}</span>
+                                <span ng-if="!tx.sourceAccount || !tx.destinationAccount">Self-Action</span>
+                            </td>
+                            <td style="font-weight: bold;" ng-style="{ 'color': (tx.sourceAccount.id === user.id ? '#dc3545' : '#28a745') }">
+                                {{(tx.sourceAccount.id === user.id) ? '-' : '+'}} ₱{{tx.transfer_amount | number:2}}
+                            </td>
+                            <td style="font-size: 0.85rem; color: #777;">{{tx.date}}</td>
+                        </tr>
+                        <tr ng-if="transactions.length === 0">
+                            <td colspan="5" style="text-align: center; padding: 20px; color: #999;">No transactions found.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
 
-<!-- Transfer Money -->
-<div class="card">
-    <h2>Transfer Money</h2>
-    <label>From:</label>
-    <select id="sourceAccount"></select><br><br>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+<script src="js/app.js"></script>
+<script src="js/customer.js"></script>
 
-    <label>To:</label>
-    <select id="destinationAccount"></select><br><br>
-
-    <input type="number" id="amount" placeholder="Amount"><br><br>
-    <button onclick="transferMoney()">Transfer</button>
-</div>
-
-<!-- Transaction History -->
-<div class="card">
-    <h2>Transaction History</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>ID</th>
-            <th>Source</th>
-            <th>Destination</th>
-            <th>Amount</th>
-            <th>Date</th>
-        </tr>
-        </thead>
-        <tbody id="transactionTable"></tbody>
-    </table>
-</div>
-
-<script src="/js/customer.js"></script>
 </body>
 </html>
