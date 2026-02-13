@@ -38,11 +38,12 @@ app.controller('BankingController', function($scope, $http, BASE_URL) {
         return (typeof err.data === 'string') ? err.data : (err.data.message || JSON.stringify(err.data));
     };
 
-    // Watcher: Reset account page to 0 whenever search query changes
-    $scope.$watch('searchUser', function(newVal, oldVal) {
-        if (newVal !== oldVal) {
-            $scope.accPage = 0;
-        }
+    await fetch(`${BASE_URL}/accounts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(account),
+        credentials: "include"
+
     });
 
     // ================= AUTH & SESSION =================

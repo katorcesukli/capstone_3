@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Customer Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<h1>Customer Dashboard</h1>
+
+<!-- Logged-in user info -->
+<div class="card">
+    <h2>Welcome, <span id="username"></span></h2>
+    <p>Balance: ₱<span id="balance"></span></p>
+    <button onclick="logout()">Logout</button>
+</div>
+
+<!-- Transfer Money -->
+<div class="card">
+    <h2>Transfer Money</h2>
+
+    <label>From:</label>
+    <select id="sourceAccount"></select><br><br>
+
+    <label>To:</label>
+    <select id="destinationAccount"></select><br><br>
+
+    <input type="number" id="amount" placeholder="Amount"><br><br>
+    <button onclick="transferMoney()">Transfer</button>
+</div>
+
+<!-- Deposit -->
+<div class="card">
+    <h2>Deposit</h2>
+    <select id="depositAccount"></select><br><br>
+    <input type="number" id="depositAmount" placeholder="Amount"><br><br>
+    <button onclick="depositMoney()">Deposit</button>
+</div>
+
+<!-- Withdraw -->
+<div class="card">
+    <h2>Withdraw</h2>
+    <select id="withdrawAccount"></select><br><br>
+    <input type="number" id="withdrawAmount" placeholder="Amount"><br><br>
+    <button onclick="withdrawMoney()">Withdraw</button>
+</div>
+
+<!-- Transaction History -->
+<div class="card">
+    <h2>Transaction History</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Source</th>
+            <th>Destination</th>
+            <th>Amount</th>
+            <th>Date</th>
+        </tr>
+        </thead>
+        <tbody id="transactionTable"></tbody>
+    </table>
+</div>
+
+<script src="js/customer.js"></script>
+</body>
+</html>
