@@ -69,6 +69,10 @@ async function transferMoney() {
         alert("Cannot transfer to same account!");
         return;
     }
+    if (!amount || amount <= 0) {
+        alert("Enter valid amount");
+        return;
+    }
 
     const transaction = {
         transfer_amount: amount, // matches backend field
@@ -76,7 +80,7 @@ async function transferMoney() {
         destinationAccount: { id: destinationId }
     };
 
-    const response = await fetch(`${BASE_URL}/transactions`, {
+    const response = await fetch(`${BASE_URL}/transactions/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(transaction)
@@ -104,17 +108,21 @@ async function loadTransactions() {
 
     transactions.forEach(tx => {
 
+        const sourceUser = tx.sourceAccount ? tx.sourceAccount.username : "-";
+        const destUser = tx.destinationAccount ? tx.destinationAccount.username : "-";
+
         table.innerHTML += `
             <tr>
                 <td>${tx.id}</td>
-                <td>${tx.sourceAccount.username}</td>
-                <td>${tx.destinationAccount.username}</td>
+                <td>${sourceUser}</td>
+                <td>${destUser}</td>
                 <td>${tx.transfer_amount}</td>
                 <td>${tx.date}</td>
             </tr>
         `;
     });
 }
+
 
 // Auto load on page open
 window.onload = function () {

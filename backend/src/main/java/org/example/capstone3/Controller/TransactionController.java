@@ -18,7 +18,7 @@ public class TransactionController {
 
 
     // CREATE
-    @PostMapping
+    @PostMapping("/transfer")
     public ResponseEntity<?> createTransaction(@RequestBody Transaction transaction) {
         try {
             Transaction savedTransaction = transactionService.createTransaction(transaction);
@@ -33,5 +33,32 @@ public class TransactionController {
     @GetMapping
     public List<Transaction> getAllTransactions() {
         return transactionService.getAllTransactions();
+    }
+
+    //deposit and withdraw block
+    @PostMapping("/deposit")
+    public ResponseEntity<?> deposit(
+            @RequestParam Long accountId,
+            @RequestParam Double amount) {
+
+        try {
+            Transaction transaction = transactionService.deposit(accountId, amount);
+            return ResponseEntity.ok(transaction);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/withdraw")
+    public ResponseEntity<?> withdraw(
+            @RequestParam Long accountId,
+            @RequestParam Double amount) {
+
+        try {
+            Transaction transaction = transactionService.withdraw(accountId, amount);
+            return ResponseEntity.ok(transaction);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

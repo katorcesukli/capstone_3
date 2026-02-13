@@ -57,4 +57,56 @@ public class TransactionService {
     public List<Transaction> getAllTransactions() {
         return transactionRepository.findAll();
     }
+
+    //deposits
+    @Transactional
+    public Transaction deposit(Long accountId, Double amount) {
+
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Deposit amount must be greater than zero");
+        }
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        // Update balance
+        account.setBalance(account.getBalance() + amount);
+        accountRepository.save(account);
+
+        // Create transaction record
+        Transaction transaction = new Transaction();
+        transaction.setDestinationAccount(account);
+        transaction.setTransfer_amount(amount);
+        transaction.setDate(LocalDate.now());
+
+
+        return transactionRepository.save(transaction);
+    }
+
+    @Transactional
+    public Transaction withdraw(Long accountId, Double amount) {
+
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Withdrawal amount must be greater than zero");
+        }
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        if (account.getBalance() < amount) {
+            throw new RuntimeException("Insufficient balance");
+        }
+
+        // Deduct balance
+        account.setBalance(account.getBalance() - amount);
+        accountRepository.save(account);
+
+        // Create transaction record
+        Transaction transaction = new Transaction();
+        transaction.setSourceAccount(account);
+        transaction.setTransfer_amount(amount);
+        transaction.setDate(LocalDate.now());
+
+        return transactionRepository.save(transaction);
+    }
 }
