@@ -1,29 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="miniBankingApp">
 <head>
     <meta charset="UTF-8">
-    <title>Register - Banking System</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBS | Register</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body ng-controller="RegisterController" ng-cloak>
 
-<h1>Banking System Registration</h1>
+<div class="auth-container">
+    <div class="auth-card">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="color: var(--primary-blue); margin: 0; font-size: 2.5rem;">MBS</h1>
+            <p style="color: #7f8c8d; font-size: 0.9rem;">Join our Secure Banking Network</p>
+        </div>
 
-<form id="registerForm">
-    <label>Username: </label>
-    <input type="text" id="username" required><br><br>
+        <h2>Register</h2>
 
-    <label>Password: </label>
-    <input type="password" id="password" required><br><br>
+        <form ng-submit="register()">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text"
+                       id="username"
+                       ng-model="regData.username"
+                       ng-change="clearError()"
+                       placeholder="Enter at least 3 characters"
+                       required>
+            </div>
 
-    <button type="submit">Register</button>
-</form>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password"
+                       id="password"
+                       ng-model="regData.password"
+                       ng-change="clearError()"
+                       placeholder="Enter at least 4 characters"
+                       required>
+            </div>
 
-<!-- Error message -->
-<p id="message" class="error"></p>
+            <div class="error" ng-if="errorMessage" style="margin-bottom: 1rem;">
+                {{errorMessage}}
+            </div>
 
-<p>Already have an account? <a href="login.html">Login here</a></p>
+            <button type="submit"
+                    class="btn-primary"
+                    ng-disabled="isSubmitting">
+                <span ng-if="!isSubmitting">Create Account</span>
+                <span ng-if="isSubmitting">Registering...</span>
+            </button>
+        </form>
 
+        <div style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem;">
+            <p>Already have an account? <a href="login.html" style="color: var(--primary-blue); text-decoration: none; font-weight: bold;">Login here</a></p>
+        </div>
+    </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+<script src="js/app.js"></script>
 <script src="js/register.js"></script>
 
 </body>

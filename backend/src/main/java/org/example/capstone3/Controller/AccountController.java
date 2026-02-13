@@ -13,16 +13,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/accounts")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "*") // Updated to "*" to ensure AngularJS on any local port can connect
 public class AccountController {
-
 
     private final AccountService accountService;
 
     // CREATE
     @PostMapping
-    public Account createAccount(@RequestBody Account account) {
-        return accountService.createAccount(account);
+    public ResponseEntity<Account> createAccount(@RequestBody Account account) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.createAccount(account));
     }
 
     // GET ALL
@@ -33,33 +32,63 @@ public class AccountController {
 
     // GET BY ID
     @GetMapping("/{id}")
-    public Account getAccountById(@PathVariable Long id) {
-        return accountService.getAccountById(id);
+    public ResponseEntity<Account> getAccountById(@PathVariable Long id) {
+        return ResponseEntity.ok(accountService.getAccountById(id));
     }
 
-    // UPDATE
+    // UPDATE (General Update)
     @PutMapping("/{id}")
-    public Account updateAccount(@PathVariable Long id, @RequestBody Account account) {
-        return accountService.updateAccount(id, account);
+    public ResponseEntity<?> updateAccount(@PathVariable Long id, @RequestBody Account account) {
+        try {
+            Account updated = accountService.updateAccount(id, account);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", ex.getMessage()));
+        }
+    }
+
+    // DISABLE / SOFT DELETE (Triggered by deleteAccount in app.js)
+    @PutMapping("/disable/{id}")
+    public ResponseEntity<?> disableAccount(@PathVariable Long id) {
+        try {
+            accountService.disableAccount(id); // Ensure this method exists in your Service
+            return ResponseEntity.ok(Map.of("message", "Account successfully disabled and sanitized"));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", ex.getMessage()));
+        }
+    }
+
+    // ENABLE / REACTIVATE (Triggered by enableAccount in app.js)
+    @PutMapping("/enable/{id}")
+    public ResponseEntity<?> enableAccount(@PathVariable Long id) {
+        try {
+            accountService.enableAccount(id); // Ensure this method exists in your Service
+            return ResponseEntity.ok(Map.of("message", "Account successfully reactivated"));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", ex.getMessage()));
+        }
     }
 
     //softdelete
     @PutMapping("/disable/{id}")
     public void deleteAccount(@PathVariable Long id) {
         accountService.deleteAccount(id);
+        return ResponseEntity.ok(Map.of("message", "Account deleted from database"));
     }
 
-//Registration and login.html block here too
+    // AUTHENTICATION
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Account account) {
         try {
-            // Role defaults to CUSTOMER in service
-           Account created = accountService.register(account);
-           return ResponseEntity.ok(created);
+            Account created = accountService.register(account);
+            return ResponseEntity.ok(created);
         } catch (RuntimeException ex) {
-          return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                   .body(Map.of("message", ex.getMessage()));
-     }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", ex.getMessage()));
+        }
     }
 
     @PostMapping("/login")
@@ -67,9 +96,8 @@ public class AccountController {
         try {
             String username = loginData.get("username");
             String password = loginData.get("password");
-
             Account account = accountService.login(username, password);
-            return ResponseEntity.ok(account); // return account JSON including role
+            return ResponseEntity.ok(account);
         } catch (RuntimeException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", ex.getMessage()));

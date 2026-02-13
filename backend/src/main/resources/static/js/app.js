@@ -1,183 +1,194 @@
-const BASE_URL = "http://localhost:8080/api";
+/**
+ * Main AngularJS Module for Mini Banking System
+ * Author: Baldano, Estrellado, & Tan
+ * Version: 2026.02.12
+ */
 
-// ================= CREATE ACCOUNT =================
-async function createAccount() {
+var app = angular.module('miniBankingApp', []);
 
-    const account = {
-        username: document.getElementById("username").value,
-        password: document.getElementById("password").value,
-        role: document.getElementById("role").value,
-        balance: parseFloat(document.getElementById("balance").value)
+// Global Configuration - Ensure port matches your Spring Boot server.port
+app.constant('BASE_URL', 'http://localhost:8082/api');
+
+app.controller('BankingController', function($scope, $http, BASE_URL) {
+
+    // Model Initialization
+    $scope.accounts = [];
+    $scope.transactions = [];
+    // PRESET: Role is set to CUSTOMER by default
+    $scope.newAccount = { username: '', password: '', role: 'CUSTOMER', balance: 0 };
+    $scope.transferData = {};
+    $scope.actionData = { accountId: null, amount: 0 };
+    $scope.errorMessage = "";
+
+    // Search and Pagination State
+    $scope.searchUser = "";
+    $scope.accPage = 0;
+    $scope.txPage = 0;
+
+    // Modal State
+    $scope.showEditModal = false;
+    $scope.editingAcc = {};
+    $scope.modalData = {};
+
+    /**
+     * Helper to safely extract error messages and avoid [object Object]
+     */
+    const parseError = function(err) {
+        if (!err.data) return "Connection Error";
+        return (typeof err.data === 'string') ? err.data : (err.data.message || JSON.stringify(err.data));
     };
 
-    await fetch(`${BASE_URL}/accounts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(account)
+    // Watcher: Reset account page to 0 whenever search query changes
+    $scope.$watch('searchUser', function(newVal, oldVal) {
+        if (newVal !== oldVal) {
+            $scope.accPage = 0;
+        }
     });
 
-    alert("Account created!");
-    loadAccounts();
-}
-
-// ================= LOAD ACCOUNTS =================
-async function loadAccounts() {
-
-    const response = await fetch(`${BASE_URL}/accounts`);
-    const accounts = await response.json();
-
-    const table = document.getElementById("accountTable");
-    table.innerHTML = "";
-
-    const sourceSelect = document.getElementById("sourceAccount");
-    const destSelect = document.getElementById("destinationAccount");
-
-    sourceSelect.innerHTML = "";
-    destSelect.innerHTML = "";
-
-    accounts.forEach(acc => {
-        table.innerHTML += `
-            <tr>
-                <td>${acc.id}</td>
-                <td>${acc.username}</td>
-                <td>${acc.role}</td>
-                <td>${acc.balance}</td>
-                <td>
-                    <button onclick="updateAccount(${acc.id})">Edit</button>
-                    <button onclick="deleteAccount(${acc.id})">Delete</button>
-                </td>
-            </tr>
-        `;
-
-        sourceSelect.innerHTML += `<option value="${acc.id}">${acc.username}</option>`;
-        destSelect.innerHTML += `<option value="${acc.id}">${acc.username}</option>`;
-    });
-}
-
-// ================= TRANSFER =================
-async function transferMoney() {
-
-    const sourceId = parseInt(document.getElementById("sourceAccount").value);
-    const destinationId = parseInt(document.getElementById("destinationAccount").value);
-    const amount = parseFloat(document.getElementById("amount").value);
-
-    if (sourceId === destinationId) {
-        alert("Cannot transfer to same account!");
-        return;
-    }
-    if (!amount || amount <= 0) {
-        alert("Enter valid amount");
-        return;
-    }
-
-    const transaction = {
-        transfer_amount: amount, // matches backend field
-        sourceAccount: { id: sourceId },
-        destinationAccount: { id: destinationId }
+    // ================= AUTH & SESSION =================
+    $scope.adminLogout = function() {
+        localStorage.removeItem('loggedUser');
+        window.location.href = 'login.html';
     };
 
-    const response = await fetch(`${BASE_URL}/transactions/transfer`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(transaction)
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        alert("Transfer failed: " + errorText);
-        return;
-    }
-
-    alert("Transfer successful!");
-    await loadAccounts();
-    await loadTransactions();
-}
-
-// ================= LOAD TRANSACTIONS =================
-async function loadTransactions() {
-
-    const response = await fetch(`${BASE_URL}/transactions`);
-    const transactions = await response.json();
-
-    const table = document.getElementById("transactionTable");
-    table.innerHTML = "";
-
-    transactions.forEach(tx => {
-
-        const sourceUser = tx.sourceAccount ? tx.sourceAccount.username : "-";
-        const destUser = tx.destinationAccount ? tx.destinationAccount.username : "-";
-
-        table.innerHTML += `
-            <tr>
-                <td>${tx.id}</td>
-                <td>${sourceUser}</td>
-                <td>${destUser}</td>
-                <td>${tx.transfer_amount}</td>
-                <td>${tx.date}</td>
-            </tr>
-        `;
-    });
-}
-
-// ================= UPDATE ACCOUNT =================
-async function updateAccount(id) {
-    const newUsername = prompt("Enter new username:");
-    if (!newUsername) return;
-
-    const newPassword = prompt("Enter new password:");
-    if (!newPassword) return;
-
-    const newRole = prompt("Enter role:");
-    if (!newRole) return;
-
-    const newBalance = parseFloat(prompt("Enter balance:"));
-    if (isNaN(newBalance)) return;
-
-    const updatedAccount = {
-        username: newUsername,
-        password: newPassword,
-        role: newRole,
-        balance: newBalance
+    // ================= LOAD DATA =================
+    $scope.loadAccounts = function() {
+        $http.get(BASE_URL + '/accounts')
+            .then(function(response) {
+                $scope.accounts = response.data;
+            })
+            .catch(function(err) {
+                console.error("Error loading accounts", err);
+            });
     };
 
-    const response = await fetch(`${BASE_URL}/accounts/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedAccount)
-    });
+    $scope.loadTransactions = function() {
+        $http.get(BASE_URL + '/transactions')
+            .then(function(response) {
+                $scope.transactions = response.data;
+            })
+            .catch(function(err) {
+                console.error("Error loading transactions", err);
+            });
+    };
 
-    if (!response.ok) {
-        alert("Update failed");
-        return;
-    }
+    // ================= ACCOUNT ACTIONS =================
 
-    alert("Account updated!");
-    loadAccounts();
-}
+    $scope.createAccount = function() {
+        var accountToCreate = angular.copy($scope.newAccount);
+        // Ensure role is uppercase for backend compatibility (CUSTOMER/ADMIN)
+        accountToCreate.role = accountToCreate.role.toUpperCase();
 
-// ================= DELETE ACCOUNT =================
-async function deleteAccount(id) {
-    if (!confirm("Are you sure you want to delete this account?")) return;
+        $http.post(BASE_URL + '/accounts', accountToCreate)
+            .then(function() {
+                alert("Account created successfully!");
+                // RESET: Returns to CUSTOMER preset after successful creation
+                $scope.newAccount = { username: '', password: '', role: 'CUSTOMER', balance: 0 };
+                $scope.loadAccounts();
+            })
+            .catch(function(err) {
+                alert("Creation failed: " + parseError(err));
+            });
+    };
 
-    // Soft delete: backend will sanitize account
-    const response = await fetch(`${BASE_URL}/accounts/disable/${id}`, {
-        method: "PUT"
-    });
+    $scope.openEditModal = function(acc) {
+        $scope.editingAcc = acc;
+        $scope.modalData = {
+            username: "",
+            password: "",
+            role: "",
+            balance: null
+        };
+        $scope.showEditModal = true;
+    };
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        alert("Delete failed: " + errorText);
-        return;
-    }
+    $scope.closeModal = function() {
+        $scope.showEditModal = false;
+        $scope.editingAcc = {};
+    };
 
-    alert("Account deleted (sanitized)!");
-    loadAccounts();
-}
+    $scope.saveModalEdit = function() {
+        const updatedAccount = {
+            username: ($scope.modalData.username && $scope.modalData.username.trim() !== "")
+                      ? $scope.modalData.username : $scope.editingAcc.username,
+            password: ($scope.modalData.password && $scope.modalData.password.trim() !== "")
+                      ? $scope.modalData.password : $scope.editingAcc.password,
+            role: ($scope.modalData.role && $scope.modalData.role.trim() !== "")
+                  ? $scope.modalData.role.toUpperCase() : $scope.editingAcc.role,
+            balance: ($scope.modalData.balance !== null && $scope.modalData.balance !== undefined)
+                     ? parseFloat($scope.modalData.balance) : $scope.editingAcc.balance
+        };
 
+        $http.put(BASE_URL + '/accounts/' + $scope.editingAcc.id, updatedAccount)
+            .then(function() {
+                alert("Account updated successfully!");
+                $scope.closeModal();
+                $scope.loadAccounts();
+            })
+            .catch(function(err) {
+                alert("Update failed: " + parseError(err));
+            });
+    };
 
+    // DISABLE / SANITIZE (Soft Delete)
+    $scope.deleteAccount = function(id) {
+        if (!confirm("Are you sure? This will disable the account and sanitize sensitive data.")) return;
 
-// Auto load on page open
-window.onload = function () {
-    loadAccounts();
-    loadTransactions();
-};
+        $http.put(BASE_URL + '/accounts/disable/' + id)
+            .then(function() {
+                alert("Account disabled successfully!");
+                $scope.loadAccounts();
+            })
+            .catch(function(err) {
+                alert("Action failed: " + parseError(err));
+            });
+    };
+
+    // REACTIVATE / ENABLE
+    $scope.enableAccount = function(id) {
+        if (!confirm("Reactivate this account?")) return;
+
+        $http.put(BASE_URL + '/accounts/enable/' + id)
+            .then(function() {
+                alert("Account reactivated successfully!");
+                $scope.loadAccounts();
+            })
+            .catch(function(err) {
+                alert("Enable failed: " + parseError(err));
+            });
+    };
+
+    // ================= TRANSACTION ACTIONS =================
+
+    $scope.transferMoney = function() {
+        if (!$scope.transferData.sourceId || !$scope.transferData.destinationId) {
+            alert("Please select both accounts.");
+            return;
+        }
+        if ($scope.transferData.sourceId === $scope.transferData.destinationId) {
+            alert("Cannot transfer to the same account!");
+            return;
+        }
+
+        var transaction = {
+            transfer_amount: $scope.transferData.amount,
+            sourceAccount: { id: $scope.transferData.sourceId },
+            destinationAccount: { id: $scope.transferData.destinationId }
+        };
+
+        $http.post(BASE_URL + '/transactions/transfer', transaction)
+            .then(function() {
+                alert("Transfer successful!");
+                $scope.transferData = {};
+                $scope.loadAccounts();
+                $scope.loadTransactions();
+            })
+            .catch(function(err) {
+                alert("Transfer failed: " + parseError(err));
+            });
+    };
+
+    // Initial Load
+    $scope.loadAccounts();
+    $scope.loadTransactions();
+});
