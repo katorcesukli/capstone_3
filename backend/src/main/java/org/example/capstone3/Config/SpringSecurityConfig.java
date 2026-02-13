@@ -21,7 +21,7 @@ public class SpringSecurityConfig {
                 // Allow all requests
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/**").permitAll()
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 );
 
         return http.build();

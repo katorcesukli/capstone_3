@@ -25,7 +25,7 @@ async function createAccount() {
 // ================= LOAD ACCOUNTS =================
 async function loadAccounts() {
 
-    const response = await fetch(`${BASE_URL}/accounts`);
+    const response = await fetch(`${BASE_URL}/accounts`, { credentials: "include" });
     const accounts = await response.json();
 
     const table = document.getElementById("accountTable");
@@ -85,7 +85,8 @@ async function transferMoney() {
     const response = await fetch(`${BASE_URL}/transactions/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(transaction)
+        body: JSON.stringify(transaction),
+        credentials: "include"
     });
 
     if (!response.ok) {
@@ -102,7 +103,7 @@ async function transferMoney() {
 // ================= LOAD TRANSACTIONS =================
 async function loadTransactions() {
 
-    const response = await fetch(`${BASE_URL}/transactions`);
+    const response = await fetch(`${BASE_URL}/transactions`, { credentials: "include" });
     const transactions = await response.json();
 
     const table = document.getElementById("transactionTable");

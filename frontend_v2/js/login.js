@@ -26,10 +26,12 @@ document.getElementById("loginForm").addEventListener("submit", async function (
         localStorage.setItem(sessionKey, JSON.stringify(data));
 
         // Redirect based on role
-        if (data.role === "ADMIN") {
-            window.location.href = "admin.html";
+        if (data.role === "admin") {
+        window.location.href = "admin.html";
+         }  else if (data.role === "customer") {
+        window.location.href = "customer.html";
         } else {
-            window.location.href = "customer.html";
+        alert("Unknown role");
         }
 
     } catch (error) {
