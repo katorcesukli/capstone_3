@@ -1,11 +1,11 @@
 const BASE_URL = "/api";
-const sessionKey = "loggedUser"; // same key we used in login.js
+const sessionKey = "loggedUser";
 
 // ================= INIT PAGE =================
-window.onload = async function() {
+window.onload = async function () {
     const user = JSON.parse(localStorage.getItem(sessionKey));
     if (!user) {
-        window.location.href = "login.html"; // redirect if not logged in
+        window.location.href = "login.html";
         return;
     }
 
@@ -24,44 +24,61 @@ function logout() {
 
 // ================= LOAD ACCOUNTS =================
 async function loadAccounts() {
-    try {
-        const response = await fetch(`${BASE_URL}/accounts`);
-        const accounts = await response.json();
 
-        const sourceSelect = document.getElementById("sourceAccount");
-        const destSelect = document.getElementById("destinationAccount");
+    const response = await fetch(`${BASE_URL}/accounts`);
+    const accounts = await response.json();
 
-        sourceSelect.innerHTML = "";
-        destSelect.innerHTML = "";
+    const user = JSON.parse(localStorage.getItem(sessionKey));
 
-        const user = JSON.parse(localStorage.getItem(sessionKey));
+    const sourceSelect = document.getElementById("sourceAccount");
+    const destSelect = document.getElementById("destinationAccount");
+    const depositSelect = document.getElementById("depositAccount");
+    const withdrawSelect = document.getElementById("withdrawAccount");
 
-        // Populate dropdowns
-        accounts.forEach(acc => {
-            // Only allow source dropdown to select **logged-in user**
-            if (acc.username === user.username) {
-                sourceSelect.innerHTML += `<option value="${acc.id}">${acc.username} (Balance: ₱${acc.balance})</option>`;
-            }
-            // Destination dropdown should include all other accounts
-            if (acc.username !== user.username) {
-                destSelect.innerHTML += `<option value="${acc.id}">${acc.username}</option>`;
-            }
-        });
+    sourceSelect.innerHTML = "";
+    destSelect.innerHTML = "";
+    depositSelect.innerHTML = "";
+    withdrawSelect.innerHTML = "";
 
-    } catch (err) {
-        console.error(err);
-        alert("Failed to load accounts");
-    }
+    accounts.forEach(acc => {
+
+        // Source = logged in user only
+        if (acc.username === user.username) {
+            sourceSelect.innerHTML += `
+                <option value="${acc.id}">
+                    ${acc.username} (₱${acc.balance})
+                </option>`;
+
+            depositSelect.innerHTML += `
+                <option value="${acc.id}">
+                    ${acc.username}
+                </option>`;
+
+            withdrawSelect.innerHTML += `
+                <option value="${acc.id}">
+                    ${acc.username}
+                </option>`;
+        }
+
+        // Destination = everyone except self
+        if (acc.username !== user.username) {
+            destSelect.innerHTML += `
+                <option value="${acc.id}">
+                    ${acc.username}
+                </option>`;
+        }
+    });
 }
 
-// ================= TRANSFER MONEY =================
+// ================= TRANSFER =================
 async function transferMoney() {
-    const sourceId = document.getElementById("sourceAccount").value;
-    const destId = document.getElementById("destinationAccount").value;
+
+    const sourceId = parseInt(document.getElementById("sourceAccount").value);
+    const destId = parseInt(document.getElementById("destinationAccount").value);
     const amount = parseFloat(document.getElementById("amount").value);
 
     if (!amount || amount <= 0) {
-        alert("Enter a valid amount");
+        alert("Enter valid amount");
         return;
     }
 
@@ -71,67 +88,122 @@ async function transferMoney() {
     }
 
     const transaction = {
-        transferAmount: amount,
+        transfer_amount: amount, // FIXED FIELD NAME
         sourceAccount: { id: sourceId },
         destinationAccount: { id: destId }
     };
 
-    try {
-        const response = await fetch(`${BASE_URL}/transactions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(transaction)
-        });
+    const response = await fetch(`${BASE_URL}/transactions/transfer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(transaction)
+    });
 
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            alert(data.message || "Transfer failed");
-            return;
-        }
-
-        alert("Transfer successful!");
-        // Reload accounts and transactions
-        await loadAccounts();
-        await loadTransactions();
-
-        // Update user balance in dashboard
-        const updatedUser = await fetch(`${BASE_URL}/accounts/${sourceId}`).then(r => r.json());
-        localStorage.setItem(sessionKey, JSON.stringify(updatedUser));
-        document.getElementById("balance").textContent = updatedUser.balance;
-
-    } catch (err) {
-        console.error(err);
-        alert("Server error during transfer");
+    if (!response.ok) {
+        const errorText = await response.text();
+        alert("Transfer failed: " + errorText);
+        return;
     }
+
+    alert("Transfer successful!");
+    await refreshUser(sourceId);
+}
+
+// ================= DEPOSIT =================
+async function depositMoney() {
+
+    const accountId = parseInt(document.getElementById("depositAccount").value);
+    const amount = parseFloat(document.getElementById("depositAmount").value);
+
+    if (!amount || amount <= 0) {
+        alert("Enter valid amount");
+        return;
+    }
+
+    const response = await fetch(
+        `${BASE_URL}/transactions/deposit?accountId=${accountId}&amount=${amount}`,
+        { method: "POST" }
+    );
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        alert("Deposit failed: " + errorText);
+        return;
+    }
+
+    alert("Deposit successful!");
+    await refreshUser(accountId);
+}
+
+// ================= WITHDRAW =================
+async function withdrawMoney() {
+
+    const accountId = parseInt(document.getElementById("withdrawAccount").value);
+    const amount = parseFloat(document.getElementById("withdrawAmount").value);
+
+    if (!amount || amount <= 0) {
+        alert("Enter valid amount");
+        return;
+    }
+
+    const response = await fetch(
+        `${BASE_URL}/transactions/withdraw?accountId=${accountId}&amount=${amount}`,
+        { method: "POST" }
+    );
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        alert("Withdraw failed: " + errorText);
+        return;
+    }
+
+    alert("Withdraw successful!");
+    await refreshUser(accountId);
+}
+
+// ================= REFRESH USER DATA =================
+async function refreshUser(accountId) {
+
+    const updatedUser = await fetch(`${BASE_URL}/accounts/${accountId}`)
+        .then(r => r.json());
+
+    localStorage.setItem(sessionKey, JSON.stringify(updatedUser));
+
+    document.getElementById("balance").textContent = updatedUser.balance;
+
+    await loadAccounts();
+    await loadTransactions();
 }
 
 // ================= LOAD TRANSACTIONS =================
 async function loadTransactions() {
-    try {
-        const response = await fetch(`${BASE_URL}/transactions`);
-        const transactions = await response.json();
 
-        const table = document.getElementById("transactionTable");
-        table.innerHTML = "";
+    const response = await fetch(`${BASE_URL}/transactions`);
+    const transactions = await response.json();
 
-        const user = JSON.parse(localStorage.getItem(sessionKey));
+    const table = document.getElementById("transactionTable");
+    table.innerHTML = "";
 
-        // Only show transactions where logged-in user is involved
-        transactions.forEach(tx => {
-            if (tx.sourceAccount.username === user.username || tx.destinationAccount.username === user.username) {
-                table.innerHTML += `
-                    <tr>
-                        <td>${tx.id}</td>
-                        <td>${tx.sourceAccount.username}</td>
-                        <td>${tx.destinationAccount.username}</td>
-                        <td>${tx.transferAmount}</td>
-                        <td>${tx.date}</td>
-                    </tr>
-                `;
-            }
-        });
-    } catch (err) {
-        console.error(err);
-        alert("Failed to load transactions");
-    }
+    const user = JSON.parse(localStorage.getItem(sessionKey));
+
+    transactions.forEach(tx => {
+
+        const sourceUser = tx.sourceAccount ? tx.sourceAccount.username : "-";
+        const destUser = tx.destinationAccount ? tx.destinationAccount.username : "-";
+
+        // Only show if user involved
+        if (
+            (tx.sourceAccount && tx.sourceAccount.username === user.username) ||
+            (tx.destinationAccount && tx.destinationAccount.username === user.username)
+        ) {
+            table.innerHTML += `
+                <tr>
+                    <td>${tx.id}</td>
+                    <td>${sourceUser}</td>
+                    <td>${destUser}</td>
+                    <td>${tx.transfer_amount}</td>
+                    <td>${tx.date}</td>
+                </tr>`;
+        }
+    });
 }
