@@ -4,87 +4,77 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.example.capstone3.Model.Account;
 import org.example.capstone3.Service.AccountService;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = {"http://127.0.0.1:5500", "http://localhost:5500"}, allowCredentials = "true")
 public class AuthController {
 
     private final AccountService accountService;
 
-    @GetMapping("/")
-    public String rootPage(){
-        return "redirect:/login.html";
-    }
-
-    // ================= LOGIN =================
-    @GetMapping("/login")
-    public String loginPage() {
-        return "login";
-    }
-
-    @PostMapping("/login")
-    public String login(@RequestParam String username,
-                        @RequestParam String password,
-                        HttpSession session,
-                        Model model) {
-
+    // ================= REGISTER =================
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody Account account) {
         try {
-            Account account = accountService.login(username, password);
-            session.setAttribute("loggedUser", account);
-
-            if (account.getRole().equalsIgnoreCase("ADMIN")) {
-                return "redirect:/admin";
-            } else {
-                return "redirect:/customer";
-            }
-
+            Account created = accountService.register(account);
+            return ResponseEntity.ok(Map.of(
+                    "username", created.getUsername(),
+                    "role", created.getRole()
+            ));
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            return "login";
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 
-    // ================= REGISTER =================
-    @GetMapping("/register")
-    public String registerPage() {
-        return "register";
-    }
-
-    @PostMapping("/register")
-    public String register(@ModelAttribute Account account,
-                           Model model) {
-
+    // ================= LOGIN =================
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData,
+                                   HttpSession session) {
         try {
-            accountService.register(account);
-            return "redirect:/login";
+            String username = loginData.get("username");
+            String password = loginData.get("password");
+
+            Account account = accountService.login(username, password);
+            session.setAttribute("loggedUser", account);
+
+            // Return role info to frontend for redirect
+            return ResponseEntity.ok(Map.of(
+                    "username", account.getUsername(),
+                    "role", account.getRole() // "ADMIN" or "CUSTOMER"
+            ));
+
         } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            return "register";
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 
     // ================= LOGOUT =================
-    @GetMapping("/logout")
-    public String logout(HttpSession session) {
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpSession session) {
         session.invalidate();
-        return "redirect:/login";
+        return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
-    // ================= CUSTOMER PAGE =================
-    @GetMapping("/customer")
-    public String customerPage(HttpSession session) {
-
+    // ================= CHECK SESSION =================
+    @GetMapping("/me")
+    public ResponseEntity<?> currentUser(HttpSession session) {
         Account account = (Account) session.getAttribute("loggedUser");
 
-        if (account == null ||
-                !account.getRole().equalsIgnoreCase("CUSTOMER")) {
-            return "redirect:/login";
+        if (account == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Not logged in"));
         }
 
-        return "customer";
+        return ResponseEntity.ok(Map.of(
+                "username", account.getUsername(),
+                "role", account.getRole()
+        ));
     }
 }

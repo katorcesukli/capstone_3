@@ -26,7 +26,7 @@ function logout() {
 // ================= LOAD ACCOUNTS =================
 async function loadAccounts() {
 
-    const response = await fetch(`${BASE_URL}/accounts`);
+    const response = await fetch(`${BASE_URL}/accounts`, { credentials: "include" });
     const accounts = await response.json();
 
     const user = JSON.parse(localStorage.getItem(sessionKey));
@@ -97,7 +97,8 @@ async function transferMoney() {
     const response = await fetch(`${BASE_URL}/transactions/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(transaction)
+        body: JSON.stringify(transaction),
+        credentials: "include"
     });
 
     if (!response.ok) {
@@ -123,7 +124,7 @@ async function depositMoney() {
 
     const response = await fetch(
         `${BASE_URL}/transactions/deposit?accountId=${accountId}&amount=${amount}`,
-        { method: "POST" }
+        { method: "POST", credentials: "include" }
     );
 
     if (!response.ok) {
@@ -149,7 +150,7 @@ async function withdrawMoney() {
 
     const response = await fetch(
         `${BASE_URL}/transactions/withdraw?accountId=${accountId}&amount=${amount}`,
-        { method: "POST" }
+        { method: "POST", credentials: "include" }
     );
 
     if (!response.ok) {
@@ -165,7 +166,7 @@ async function withdrawMoney() {
 // ================= REFRESH USER DATA =================
 async function refreshUser(accountId) {
 
-    const updatedUser = await fetch(`${BASE_URL}/accounts/${accountId}`)
+    const updatedUser = await fetch(`${BASE_URL}/accounts/${accountId}`, { credentials: "include" })
         .then(r => r.json());
 
     localStorage.setItem(sessionKey, JSON.stringify(updatedUser));
@@ -179,7 +180,7 @@ async function refreshUser(accountId) {
 // ================= LOAD TRANSACTIONS =================
 async function loadTransactions() {
 
-    const response = await fetch(`${BASE_URL}/transactions`);
+    const response = await fetch(`${BASE_URL}/transactions`, { credentials: "include" });
     const transactions = await response.json();
 
     const table = document.getElementById("transactionTable");

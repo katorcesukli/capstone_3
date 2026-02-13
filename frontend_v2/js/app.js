@@ -25,7 +25,7 @@ async function createAccount() {
 // ================= LOAD ACCOUNTS =================
 async function loadAccounts() {
 
-    const response = await fetch(`${BASE_URL}/accounts`);
+    const response = await fetch(`${BASE_URL}/accounts`, { credentials: "include" });
     const accounts = await response.json();
 
     const table = document.getElementById("accountTable");
@@ -38,21 +38,25 @@ async function loadAccounts() {
     destSelect.innerHTML = "";
 
     accounts.forEach(acc => {
+
+        // Table
         table.innerHTML += `
             <tr>
                 <td>${acc.id}</td>
                 <td>${acc.username}</td>
                 <td>${acc.role}</td>
                 <td>${acc.balance}</td>
-                <td>
-                    <button onclick="updateAccount(${acc.id})">Edit</button>
-                    <button onclick="deleteAccount(${acc.id})">Delete</button>
-                </td>
             </tr>
         `;
 
-        sourceSelect.innerHTML += `<option value="${acc.id}">${acc.username}</option>`;
-        destSelect.innerHTML += `<option value="${acc.id}">${acc.username}</option>`;
+        // Dropdowns
+        sourceSelect.innerHTML += `
+            <option value="${acc.id}">${acc.username}</option>
+        `;
+
+        destSelect.innerHTML += `
+            <option value="${acc.id}">${acc.username}</option>
+        `;
     });
 }
 
@@ -81,7 +85,8 @@ async function transferMoney() {
     const response = await fetch(`${BASE_URL}/transactions/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(transaction)
+        body: JSON.stringify(transaction),
+        credentials: "include"
     });
 
     if (!response.ok) {
@@ -98,7 +103,7 @@ async function transferMoney() {
 // ================= LOAD TRANSACTIONS =================
 async function loadTransactions() {
 
-    const response = await fetch(`${BASE_URL}/transactions`);
+    const response = await fetch(`${BASE_URL}/transactions`, { credentials: "include" });
     const transactions = await response.json();
 
     const table = document.getElementById("transactionTable");
@@ -120,62 +125,6 @@ async function loadTransactions() {
         `;
     });
 }
-
-// ================= UPDATE ACCOUNT =================
-async function updateAccount(id) {
-    const newUsername = prompt("Enter new username:");
-    if (!newUsername) return;
-
-    const newPassword = prompt("Enter new password:");
-    if (!newPassword) return;
-
-    const newRole = prompt("Enter role:");
-    if (!newRole) return;
-
-    const newBalance = parseFloat(prompt("Enter balance:"));
-    if (isNaN(newBalance)) return;
-
-    const updatedAccount = {
-        username: newUsername,
-        password: newPassword,
-        role: newRole,
-        balance: newBalance
-    };
-
-    const response = await fetch(`${BASE_URL}/accounts/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedAccount)
-    });
-
-    if (!response.ok) {
-        alert("Update failed");
-        return;
-    }
-
-    alert("Account updated!");
-    loadAccounts();
-}
-
-// ================= DELETE ACCOUNT =================
-async function deleteAccount(id) {
-    if (!confirm("Are you sure you want to delete this account?")) return;
-
-    // Soft delete: backend will sanitize account
-    const response = await fetch(`${BASE_URL}/accounts/disable/${id}`, {
-        method: "PUT"
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        alert("Delete failed: " + errorText);
-        return;
-    }
-
-    alert("Account deleted (sanitized)!");
-    loadAccounts();
-}
-
 
 
 // Auto load on page open
