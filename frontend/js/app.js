@@ -7,7 +7,7 @@
 var app = angular.module('miniBankingApp', []);
 
 // Global Configuration - Ensure port matches your Spring Boot server.port
-app.constant('BASE_URL', 'http://localhost:8082/api');
+app.constant('BASE_URL', 'http://localhost:8080/api');
 
 app.controller('BankingController', function($scope, $http, BASE_URL) {
 

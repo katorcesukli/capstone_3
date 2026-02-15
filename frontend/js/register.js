@@ -6,7 +6,7 @@
 
 app.controller('RegisterController', function($scope, $http, $window) {
     // Configuration
-    const BASE_URL = "http://localhost:8082/api";
+    const BASE_URL = "http://localhost:8080/api";
 
     // Initialize scope variables
     $scope.regData = {

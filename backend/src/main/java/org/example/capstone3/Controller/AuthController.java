@@ -8,9 +8,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://127.0.0.1:5500", "http://localhost:5500"}, allowCredentials = "true")
+@CrossOrigin(origins = {"http://127.0.0.1:5500", "http://localhost:5500", "http://localhost:4200"}, allowCredentials = "true")
 public class AuthController {
 
     private final AccountService accountService;
@@ -41,6 +43,7 @@ public class AuthController {
 
             Account account = accountService.login(username, password);
             session.setAttribute("loggedUser", account);
+
 
             // Return role info to frontend for redirect
             return ResponseEntity.ok(Map.of(

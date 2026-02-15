@@ -7,11 +7,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/transactions")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://127.0.0.1:5500")
+@CrossOrigin(origins = {"http://127.0.0.1:5500", "http://localhost:5500", "http://localhost:4200"}, allowCredentials = "true")
 public class TransactionController {
 
     private final TransactionService transactionService;
@@ -37,11 +38,10 @@ public class TransactionController {
 
     //deposit and withdraw block
     @PostMapping("/deposit")
-    public ResponseEntity<?> deposit(
-            @RequestParam Long accountId,
-            @RequestParam Double amount) {
-
+    public ResponseEntity<?> deposit(@RequestBody Map<String, Object> request) {
         try {
+            Long accountId = ((Number) request.get("accountId")).longValue();
+            Double amount = ((Number) request.get("amount")).doubleValue();
             Transaction transaction = transactionService.deposit(accountId, amount);
             return ResponseEntity.ok(transaction);
         } catch (RuntimeException e) {
@@ -50,11 +50,10 @@ public class TransactionController {
     }
 
     @PostMapping("/withdraw")
-    public ResponseEntity<?> withdraw(
-            @RequestParam Long accountId,
-            @RequestParam Double amount) {
-
+    public ResponseEntity<?> withdraw(@RequestBody Map<String, Object> request) {
         try {
+            Long accountId = ((Number) request.get("accountId")).longValue();
+            Double amount = ((Number) request.get("amount")).doubleValue();
             Transaction transaction = transactionService.withdraw(accountId, amount);
             return ResponseEntity.ok(transaction);
         } catch (RuntimeException e) {

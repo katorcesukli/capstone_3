@@ -1,0 +1,226 @@
+<div class="modal-overlay" *ngIf="showEditModal">
+  <div class="modal-content">
+    <h3>Edit Account #{{ editingAcc.accountId }}</h3>
+    <p style="font-size: 0.85rem; color: #666; margin-bottom: 20px;">
+      Leave fields blank to keep current values.
+    </p>
+
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" [(ngModel)]="modalData.username" [placeholder]="editingAcc.username" />
+    </div>
+    <div class="form-group">
+      <label>New Password</label>
+      <input type="password" [(ngModel)]="modalData.password" placeholder="Enter new password" />
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <select [(ngModel)]="modalData.role">
+        <option value="">-- No Change (Currently {{ editingAcc.role }}) --</option>
+        <option value="CUSTOMER">CUSTOMER</option>
+        <option value="ADMIN">ADMINISTRATOR</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Balance (₱)</label>
+      <input
+        type="number"
+        [(ngModel)]="modalData.balance"
+        [placeholder]="(editingAcc.balance | number: '1.2-2')"
+        step="0.01"
+      />
+    </div>
+
+    <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 25px;">
+      <button class="btn-primary" (click)="saveModalEdit()" style="flex: 2;">Save Changes</button>
+      <button
+        class="btn-logout"
+        (click)="closeModal()"
+        style="flex: 1; background: #6c757d; color: white;"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<nav class="navbar">
+  <div class="nav-brand">MBS | Administrator Portal</div>
+  <div class="nav-user">
+    <span>Logged in as: <strong>Admin</strong></span>
+    <button class="btn-logout" (click)="adminLogout()" style="margin-left: 15px;">Logout</button>
+  </div>
+</nav>
+
+<div class="dashboard-container">
+  <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+    <div class="sidebar-actions">
+      <div class="card">
+        <h3>Create New Account</h3>
+        <form (ngSubmit)="createAccount()">
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" [(ngModel)]="newAccount.username" name="username" required />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" [(ngModel)]="newAccount.password" name="password" required />
+          </div>
+          <div class="form-group">
+            <label>User Role</label>
+            <select [(ngModel)]="newAccount.role" name="role">
+              <option value="CUSTOMER">CUSTOMER</option>
+              <option value="ADMIN">ADMINISTRATOR</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Initial Balance (₱)</label>
+            <input
+              type="number"
+              [(ngModel)]="newAccount.balance"
+              name="balance"
+              step="0.01"
+            />
+          </div>
+          <button type="submit" class="btn-primary">Register Account</button>
+        </form>
+      </div>
+
+      <div class="card" style="margin-top: 20px;">
+        <h3>System Transfer</h3>
+        <form (ngSubmit)="transferMoney()">
+          <div class="form-group">
+            <label>Source Account</label>
+            <select [(ngModel)]="transferData.sourceId" name="sourceId" required>
+              <option [value]="null">-- Select Source --</option>
+              <option *ngFor="let acc of accounts" [value]="acc.id">{{ acc.username }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Destination Account</label>
+            <select [(ngModel)]="transferData.destinationId" name="destId" required>
+              <option [value]="null">-- Select Recipient --</option>
+              <option *ngFor="let acc of accounts" [value]="acc.id">{{ acc.username }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Amount (₱)</label>
+            <input type="number" [(ngModel)]="transferData.amount" name="amount" required step="0.01" />
+          </div>
+          <button type="submit" class="btn-primary" style="background-color: #007bff;">Execute Transfer</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3 style="margin: 0;">Master Account List</h3>
+          <div style="display: flex; gap: 10px;">
+            <input type="text" [(ngModel)]="searchUser" placeholder="Search username..." style="max-width: 180px;" />
+            <button class="btn-refresh" (click)="loadAccounts()" title="Refresh List" style="padding: 8px 12px;">↻</button>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="transaction-table">
+            <thead>
+              <tr>
+                <th>Account ID</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Balance</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let acc of (filteredAccounts | slice: accPage * 5 : (accPage + 1) * 5)"
+                [ngStyle]="acc.role === 'DISABLED' ? { 'opacity': '0.6', 'background-color': '#f8f9fa' } : {}"
+              >
+                <td>#{{ acc.accountId }}</td>
+                <td><strong>{{ acc.username }}</strong></td>
+                <td>
+                  <span
+                    class="role-badge"
+                    [ngStyle]="acc.role === 'DISABLED' ? { 'background': '#6c757d' } : {}"
+                  >
+                    {{ acc.role }}
+                  </span>
+                </td>
+                <td>₱ {{ acc.balance | number: '1.2-2' }}</td>
+                <td>
+                  <button (click)="openEditModal(acc)" class="btn-refresh" style="background: #ffc107; padding: 4px 8px; font-size: 0.8rem; border-color: #e0a800; color: #000;">Edit</button>
+
+                  <button
+                    *ngIf="acc.role !== 'DISABLED'"
+                    (click)="deleteAccount(acc.id)"
+                    class="btn-logout"
+                    style="padding: 4px 8px; font-size: 0.8rem;"
+                  >
+                    Disable
+                  </button>
+
+                  <button
+                    *ngIf="acc.role === 'DISABLED'"
+                    (click)="enableAccount(acc.id)"
+                    class="btn-primary"
+                    style="padding: 4px 8px; font-size: 0.8rem; background-color: #28a745; width: auto; border: none;"
+                  >
+                    Enable
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="filteredAccounts.length === 0">
+                <td colspan="5" style="text-align: center; padding: 20px; color: #999;">No accounts found.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination-row">
+          <button [disabled]="accPage === 0" (click)="accPage = accPage - 1">Prev</button>
+          <span>Page {{ accPage + 1 }}</span>
+          <button [disabled]="(accPage + 1) * 5 >= filteredAccounts.length" (click)="accPage = accPage + 1">Next</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3 style="margin: 0;">System-wide Transactions</h3>
+          <button class="btn-refresh" (click)="loadTransactions()" title="Refresh Transactions" style="font-size: 0.85rem; padding: 6px 12px;">↻ Refresh</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="transaction-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Amount</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tx of transactions | slice: txPage * 5 : (txPage + 1) * 5">
+                <td>#{{ tx.id }}</td>
+                <td>{{ tx.sourceAccount ? tx.sourceAccount.username : '(Deposit)' }}</td>
+                <td>{{ tx.destinationAccount ? tx.destinationAccount.username : '(Withdraw)' }}</td>
+                <td [ngClass]="tx.destinationAccount ? 'text-success' : 'text-danger'">
+                  {{ !tx.destinationAccount ? '-' : '+' }} ₱ {{ tx.transfer_amount | number: '1.2-2' }}
+                </td>
+                <td style="font-size: 0.85rem; color: #666;">{{ tx.date }}</td>
+              </tr>
+              <tr *ngIf="transactions.length === 0">
+                <td colspan="5" style="text-align: center; padding: 20px; color: #999;">No transactions found.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination-row">
+          <button [disabled]="txPage === 0" (click)="txPage = txPage - 1">Prev</button>
+          <span>Page {{ txPage + 1 }}</span>
+          <button [disabled]="(txPage + 1) * 5 >= transactions.length" (click)="txPage = txPage + 1">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

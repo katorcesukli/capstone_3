@@ -1,0 +1,58 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <h1 style="color: var(--primary-blue); margin: 0; font-size: 2.5rem;">MBS</h1>
+      <p style="color: #7f8c8d; font-size: 0.9rem;">Join our Secure Banking Network</p>
+    </div>
+
+    <h2>Register</h2>
+
+    <form (ngSubmit)="register()">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          [(ngModel)]="regData.username"
+          name="username"
+          (change)="clearError()"
+          placeholder="Enter at least 3 characters"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          [(ngModel)]="regData.password"
+          name="password"
+          (change)="clearError()"
+          placeholder="Enter at least 4 characters"
+          required
+        />
+      </div>
+
+      <div class="error" *ngIf="errorMessage" style="margin-bottom: 1rem;">
+        {{ errorMessage }}
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="isSubmitting">
+        <span *ngIf="!isSubmitting">Create Account</span>
+        <span *ngIf="isSubmitting">Registering...</span>
+      </button>
+    </form>
+
+    <div style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem;">
+      <p>
+        Already have an account?
+        <a
+          routerLink="/login"
+          style="color: var(--primary-blue); text-decoration: none; font-weight: bold;"
+          >Login here</a
+        >
+      </p>
+    </div>
+  </div>
+</div>
