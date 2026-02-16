@@ -13,5 +13,5 @@ public class Capstone3Application {
         System.out.println("MBS Backend is running on: http://localhost:8082/login.html");
         System.out.println("=============================================================");
     }
-    //angular migration
+    //angular migration hello hello :)
 }
