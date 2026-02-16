@@ -15,6 +15,7 @@ export class AuthGuard implements CanActivate {
     const user = this.authService.getUser();
 
     if (!user) {
+      alert("Access denied. You are not authorized.");
       this.router.navigate(['/login']);
       return false;
     }
@@ -24,6 +25,7 @@ export class AuthGuard implements CanActivate {
       const userRole = user.role?.toUpperCase();
       const isAuthorized = requiredRole.some((role: string) => role.toUpperCase() === userRole);
       if (!isAuthorized) {
+        alert("Access denied. You are not authorized.");
         this.router.navigate(['/login']);
         return false;
       }
